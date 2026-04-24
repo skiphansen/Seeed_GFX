@@ -1,12 +1,16 @@
+#include "driver.h"
 #include "TFT_eSPI.h"
 
 #ifdef EPAPER_ENABLE // Only compile this code if the EPAPER_ENABLE is defined in User_Setup.h
+#pragma message("Defining epaper")
 EPaper epaper;
 #endif
 
 void setup()
 {
+#pragma message("setup()")
 #ifdef EPAPER_ENABLE
+#pragma message("setup(): 1")
     epaper.begin();
     epaper.fillScreen(TFT_WHITE);
 

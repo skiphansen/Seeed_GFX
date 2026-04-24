@@ -6,6 +6,7 @@
  * - TFT_YELLOW (Yellow)
  */
 
+#include "driver.h"
 #include "TFT_eSPI.h"
 #include "image.h"
 
