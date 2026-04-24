@@ -90,4 +90,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 .pio/
-
+*.vpw
+*.vtg
+*.vpwhist

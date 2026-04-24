@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "driver.h"
 #include "TFT_eSPI.h"
 
