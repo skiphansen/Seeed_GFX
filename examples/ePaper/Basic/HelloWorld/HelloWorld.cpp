@@ -9,9 +9,11 @@ EPaper epaper;
 
 void setup()
 {
-#pragma message("setup()")
 #ifdef EPAPER_ENABLE
-#pragma message("setup(): 1")
+   Serial.begin(115200);
+   while(!Serial);
+   delay(250);
+   Serial.println("Hello world example...");
     epaper.begin();
     epaper.fillScreen(TFT_WHITE);
 
