@@ -1,0 +1,66 @@
+To build: Build once, then run patch_build.sh
+
+driver.h is included by the main line program, it defines BOARD_SCREEN_COMBO:
+
+#define BOARD_SCREEN_COMBO 512 // 2.9 inch BWRY ePaper Screen (JD79667)
+
+The main line program then includes TFT_eSPI.h which includes 
+User_Setup_Select.h 
+
+
+which includes User_Setups/Dynamic_Setup.h:
+
+---
+#elif BOARD_SCREEN_COMBO == 512
+#define USE_BWRY_EPAPER
+#define ENABLE_EPAPER_BOARD_PIN_SETUPS
+#include <User_Setups/Setup512_Seeed_XIAO_EPaper_2inch9_BWRY.h>
+#elif BOARD_SCREEN_COMBO == 513
+---
+
+Setup512_Seeed_XIAO_EPaper_2inch9_BWRY.h defines JD79667_DRIVER which
+causes TFT_eSPI.cpp to include TFT_Drivers/JD79667_Init.h and
+TFT_Drivers/JD79667_Rotation.h  
+
+---
+// This loads the driver specific initialisation code  <<<<<<<<<<<<<<<<<<<<< ADD NEW DRIVERS TO THE LIST HERE <<<<<<<<<<<<<<<<<<<<<<<
+...
+TFT_eSPI::initFromSleep(uint8_t tc)
+...
+line 790:
+#elif defined (JD79667_DRIVER)
+     #include "TFT_Drivers/JD79667_Init.h"  
+...
+
+void TFT_eSPI::init(uint8_t tc)
+...
+line 1007:
+#elif defined (JD79667_DRIVER)
+     #include "TFT_Drivers/JD79667_Init.h"  
+
+...
+void TFT_eSPI::setRotation(uint8_t m)
+...
+#elif defined (JD79667_DRIVER)
+     #include "TFT_Drivers/JD79667_Rotation.h"  
+---
+
+
+This also causes User_Setup_Select.h to include JD79667_Defines.h
+
+---
+#elif defined (JD79667_DRIVER)
+     #include "TFT_Drivers/JD79667_Defines.h"  
+     #define  TFT_DRIVER 0x2904       
+--
+
+
+---
+
+grep'ing is MUCH faster than using slickedit's search across a mounted FS,
+but embedded spaces in path names are a PIA!
+
+This works:
+
+find . -name <some path> -print0 | xargs -0 grep <whatever>
+

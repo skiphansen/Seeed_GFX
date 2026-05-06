@@ -1,5 +1,7 @@
+#pragma message "Init included"
 // JD79686B_Init.h
 {
+   LOG("Custom init called\n");
 #ifdef TFT_BUSY
     pinMode(TFT_BUSY, INPUT);
 #endif

@@ -18,8 +18,11 @@ void setup()
 {
 #ifdef EPAPER_ENABLE
   Serial.begin(115200);
-  delay(2000);
+  delay(250);
   Serial.println("2.9\" BWRY E-Paper Bitmap Display Example");
+  Serial.println("Press a key to continue");
+  while(!Serial.available());
+  int incomingByte = Serial.read();
   
   epaper.begin();
   
