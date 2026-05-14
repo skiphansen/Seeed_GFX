@@ -89,7 +89,8 @@ debug_custom.json
 Network Trash Folder
 Temporary Items
 .apdisk
-.pio/
+.pio*/
 *.vpw
 *.vtg
 *.vpwhist
+

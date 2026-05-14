@@ -1,6 +1,8 @@
 // PDI 7.4" BWRY EPD (E2741QS0B3)
 #include "TFT_eSPI.h"
 
+void E2741Q_init();
+
 #ifdef JD79667_DRIVER
 #undef JD79667_DRIVER
 #endif
