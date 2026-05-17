@@ -2,17 +2,18 @@
 #include "TFT_eSPI.h"
 
 void E2741Q_init();
+void E2741Q_wakeup(void);
 
 #ifdef JD79667_DRIVER
 #undef JD79667_DRIVER
 #endif
 
 #ifndef EPD_WIDTH
-#define EPD_WIDTH 800
+#define EPD_WIDTH 480
 #endif
 
 #ifndef EPD_HEIGHT
-#define EPD_HEIGHT 480
+#define EPD_HEIGHT 800
 #endif
 
 #ifndef TFT_WIDTH
@@ -23,7 +24,7 @@ void E2741Q_init();
 #define TFT_HEIGHT EPD_HEIGHT
 #endif
 
-#define EPD_COLOR_DEPTH 1
+#define EPD_COLOR_DEPTH 4
 
 // It is unknown if these are correct, they were cut and pasted and don't 
 // appear to be needed
@@ -63,9 +64,15 @@ void E2741Q_init();
 #define EPD_UPDATE()        \
     do                      \
     {                       \
+        LOG("C: 04\n");   \
         writecommand(0x04); \
+        LOG("call CHECK_BUSY\n");   \
         CHECK_BUSY();       \
+        LOG("C: 12\n");   \
         writecommand(0x12); \
+        LOG("D: 00\n");   \
+        writedata(0);    \
+        LOG("call CHECK_BUSY\n");   \
         CHECK_BUSY();       \
     } while (0)
 
@@ -78,23 +85,68 @@ void E2741Q_init();
         writedata(0xA5);    \
     } while (0)
 
-#define EPD_WAKEUP() E2741Q_init()
+#define EPD_WAKEUP() E2741Q_wakeup()
 
 #define EPD_SET_WINDOW(x1, y1, x2, y2)
+
+#if 0
 
 #define EPD_PUSH_NEW_COLORS(w, h, colors)       \
     do                                          \
     {                                           \
+       int BytesWritten = 0; \
+       LOG("C: 13\n"); \
         writecommand(0x13);                     \
         for (int i = 0; i < (w) * (h) / 8; i++) \
         {                                       \
             writedata(colors[i]);               \
+               LOG("D: %2X\n",colors[i]); \
+               BytesWritten++; \
         }                                       \
+        LOG("BytesWritten %d\n",BytesWritten); \
     } while (0)
+#else
+#define COLOR_GET(color) ( \
+    (color) == 0x00 ? 0x01 : \
+    (color) == 0x0B ? 0x02 : \
+    (color) == 0x06 ? 0x03 : \
+    (color) == 0x0F ? 0x00 : \
+    0x00 \
+)
+
+#define EPD_PUSH_NEW_COLORS(w, h, colors)   \
+    do                                      \
+    {                                       \
+        uint16_t bytes_per_row = (w) / 2;   \
+        uint8_t temp1, temp2, temp3, temp4;               \
+        int BytesWritten = 0; \
+        LOG("C: 10\n"); \
+        writecommand(0x10);                 \
+        for (uint16_t row = 0; row < (h) ; row++)        \
+        {                                   \
+            for(uint16_t col = 0; col < bytes_per_row; col+=2)   \
+            {                               \
+                uint8_t b = (colors[bytes_per_row *row+col ]) ;   \
+                uint8_t c = (colors[bytes_per_row *row+col + 1]) ;   \
+                temp1 =  (b >> 4) & 0x0F;\
+                temp2 =   b & 0x0F;\
+                temp3 =  (c >> 4) & 0x0F;\
+                temp4 =   c & 0x0F;\
+                uint8_t x = (COLOR_GET(temp1) <<6)|( COLOR_GET(temp2) << 4 ) |( COLOR_GET(temp3) << 2 ) |( COLOR_GET(temp4) << 0 );\
+                LOG("D: %02X\n",x); \
+                writedata(x); \
+                BytesWritten++; \
+            }                               \
+        }                                   \
+        LOG("BytesWritten %d!\n",BytesWritten); \
+    } while (0)
+#endif
 
 #define EPD_PUSH_NEW_COLORS_FLIP(w, h, colors)                         \
     do                                                                 \
     {                                                                  \
+       int BytesWritten = 0; \
+       LOG("C: 13\n"); \
         writecommand(0x13);                                            \
         uint16_t bytes_per_row = (w) / 8;                              \
         for (uint16_t row = 0; row < (h); row++)                       \
@@ -107,8 +159,11 @@ void E2741Q_init();
                 b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2);             \
                 b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1);             \
                 writedata(b);                                          \
+               LOG("D: %2X\n",b); \
+               BytesWritten++; \
             }                                                          \
         }                                                              \
+        LOG("BytesWritten %d\n",BytesWritten); \
     } while (0)
 
 #define EPD_PUSH_OLD_COLORS(w, h, colors)

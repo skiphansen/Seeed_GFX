@@ -1,5 +1,7 @@
 #include <Wire.h>
 
+#pragma message "Custom setup included"
+
 #define USER_SETUP_ID 512
 
 #define JD79667_DRIVER
@@ -72,3 +74,7 @@
 #define SPI_FREQUENCY 10000000
 #define SPI_READ_FREQUENCY 4000000
 #endif
+
+#undef SPI_FREQUENCY
+#define SPI_FREQUENCY   10000000
+

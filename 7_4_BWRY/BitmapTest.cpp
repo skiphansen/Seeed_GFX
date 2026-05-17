@@ -40,6 +40,10 @@ const uint8_t epd_E2741Q_init[] PROGMEM = {
    2,0xE6,0x19,
    2,0xE0,0x02,
    1,0xA5,
+   FUNCT_END()
+};
+
+const uint8_t epd_E2741Q_init1[] PROGMEM = {
 // (PWR): Power setting Register ?? JD79665AA shows 6 parameters
    2,0x01,0x07,
    3,0x00,  //  (PSR): Panel setting Register
@@ -139,6 +143,7 @@ const uint8_t epd_E2741Q_init[] PROGMEM = {
    FUNCT_END()
 };
 
+
 void RunSequence(const uint8_t *p)
 {
    uint8_t Count;
@@ -153,8 +158,10 @@ void RunSequence(const uint8_t *p)
          }
       }
       else {
+         LOG_RAW("\nC: %02X\n",*p);
          epaper.writecommand(*p++);
-         while(Count--) {
+         while(--Count) {
+            LOG_RAW("D: %02X\n",*p);
             epaper.writedata(*p++);
          }
       }
@@ -163,8 +170,25 @@ void RunSequence(const uint8_t *p)
 
 void E2741Q_init()
 {
+   volatile int Busy;
+   Busy = digitalRead(4);
+   pinMode(4,INPUT);
+
    RunSequence(epd_E2741Q_init);
+   LOG("Waiting for busy high, starting with %d\n",Busy);
+   do {
+      Busy = !digitalRead(4);
+   } while(Busy);
+   LOG("Busy whet high\n");
+   RunSequence(epd_E2741Q_init1);
 }
+
+void E2741Q_wakeup()
+{
+   E2741Q_init();
+
+}
+
 
 #endif
 
@@ -185,12 +209,12 @@ void setup()
   LOG("Press a key to continue");
   while(!Serial.available());
   int incomingByte = Serial.read();
-  
-  StartTime =  millis();
-  epaper.begin();
 
   LOG("TFT_SCLK %d, TFT_MISO %d, TFT_MOSI %d, TFT_CS %d, TFT_DC %d, TFT_BUSY %d, TFT_RST %d\n",
       TFT_SCLK,TFT_MISO,TFT_MOSI,TFT_CS,TFT_DC,TFT_BUSY,TFT_RST);
+  
+  StartTime =  millis();
+  epaper.begin();
   
   // Display 4-color bitmap image using pushImage API
   // pushImage(x, y, width, height, image_data)

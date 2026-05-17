@@ -68,11 +68,6 @@
 
 #include <User_Setup_Select.h>
 
-#ifdef CUSTOM_USER_SETUP
-#include CUSTOM_USER_SETUP
-#endif
-
-
 // Handle FLASH based storage e.g. PROGMEM
 #if defined(ARDUINO_ARCH_RP2040)
 #undef pgm_read_byte

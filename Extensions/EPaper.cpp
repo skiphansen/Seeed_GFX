@@ -12,11 +12,14 @@ void EPaper::begin(uint8_t wake)
     setTextColor(TFT_BLACK, TFT_WHITE, true);
     if(wake)
     {
+       LOG("Calling initFromSleep()\n");
         initFromSleep();
     }
     else
     {
+       LOG("Calling init()\n");
         init();
+        LOG("Calling EPD_WAKEUP()\n");
         EPD_WAKEUP();
     } 
 //     fillSprite(1);
@@ -40,17 +43,21 @@ void EPaper::begin(uint8_t wake)
 
 void EPaper::update()
 {
+   LOG("Called\n");
     wake();
     EPD_SET_WINDOW(0, 0, (_width - 1), (_height - 1));
     if(!_grayLevel)
     {
         #ifdef EPD_HORIZONTAL_MIRROR
             EPD_PUSH_OLD_COLORS_FLIP(_width, _height, _img8);
+            LOG("calling EPD_PUSH_NEW_COLORS_FLIP()\n");
             EPD_PUSH_NEW_COLORS_FLIP(_width, _height, _img8);
         #else
             EPD_PUSH_OLD_COLORS(_width, _height, _img8);
+            LOG("calling EPD_PUSH_NEW_COLORS(%d,%d)\n",_width,_height);
             EPD_PUSH_NEW_COLORS(_width, _height, _img8);
         #endif
+            LOG("Calling EPD_UPDATE()\n");
             EPD_UPDATE();
     }    
     else
@@ -61,9 +68,11 @@ void EPaper::update()
         #else
             EPD_PUSH_NEW_GRAY_COLORS(_width, _height, _img8);
         #endif
+            LOG("Calling EPD_UPDATE_GRAY()\n");
             EPD_UPDATE_GRAY();
       #endif  
     }
+    LOG("Calling sleep()\n");
     sleep();
 }
 

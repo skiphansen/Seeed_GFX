@@ -2082,6 +2082,7 @@ void TFT_eSPI::pushImage(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t *d
 ***************************************************************************************/
 void TFT_eSPI::pushImage(int32_t x, int32_t y, int32_t w, int32_t h, const uint16_t *data)
 {
+   int TotalBytes = 0;
   // Requires 32-bit aligned access, so use PROGMEM 16-bit word functions
   PI_CLIP;
 
@@ -2100,7 +2101,9 @@ void TFT_eSPI::pushImage(int32_t x, int32_t y, int32_t w, int32_t h, const uint1
       buffer[j] = pgm_read_word(&data[i * w + j]);
     }
     pushPixels(buffer, dw);
+    TotalBytes += dw;
   }
+  LOG("Send %d bytes\n",TotalBytes);
 
   inTransaction = lockTransaction;
   end_tft_write();

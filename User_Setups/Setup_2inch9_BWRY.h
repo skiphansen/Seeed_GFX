@@ -1,4 +1,13 @@
+#pragma message "setup included"
+
 #include <Wire.h>
+
+#define USE_BWRY_EPAPER
+#define ENABLE_EPAPER_BOARD_PIN_SETUPS
+
+#define USER_SETUP_ID 512
+
+#define JD79667_DRIVER
 
 #define EPAPER_ENABLE
 
@@ -11,7 +20,8 @@
 //#define EPD_HORIZONTAL_MIRROR
 
 #ifdef ENABLE_EPAPER_BOARD_PIN_SETUPS
-#include "EPaper_Board_Pins_Setups.h"
+#pragma message "including User_Setups/EPaper_Board_Pins_Setups.h"
+#include "User_Setups/EPaper_Board_Pins_Setups.h"
 #else
 #define TFT_SCLK D8
 #define TFT_MISO D9
@@ -68,3 +78,8 @@
 #define SPI_FREQUENCY 10000000
 #define SPI_READ_FREQUENCY 4000000
 #endif
+
+#pragma message "Custom setup included"
+#undef SPI_FREQUENCY
+#define SPI_FREQUENCY   10000000
+

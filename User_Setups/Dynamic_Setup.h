@@ -1,5 +1,6 @@
 #ifndef DYNAMIC_SETUP_H
 #define DYNAMIC_SETUP_H
+#pragma message "Dynamic_setup.h included"
 
 
 #if defined(ARDUINO_SEEED_XIAO_RA4M1) && !defined(SEEED_XIAO_RA4M1_SERIAL_PRINTF_SHIM)
@@ -61,7 +62,9 @@
   #define SEEED_XIAO_RA4M1_SERIAL_PRINTF_SHIM
 #endif
 
-#ifndef BOARD_SCREEN_COMBO
+#ifdef CUSTOM_USER_SETUP
+#include CUSTOM_USER_SETUP
+#elif !defined BOARD_SCREEN_COMBO
   // Pick a sensible default based on the detected board so that CI targets
   // without built-in LCD pin macros (e.g. the XIAO family) still compile.
   #if defined(SEEED_WIO_TERMINAL) || defined(ARDUINO_SEEED_WIO_TERMINAL)
@@ -84,10 +87,6 @@
     // Default to Wio Terminal behaviour if no better match is known.
     #define BOARD_SCREEN_COMBO 500
   #endif
-#endif
-
-
-
 #if BOARD_SCREEN_COMBO == 1
 #include <User_Setups/Setup1_ILI9341.h> 
 #elif BOARD_SCREEN_COMBO == 2
@@ -383,7 +382,7 @@
   // If BOARD_SCREEN_COMBO was defined but did not match any of the above IDs
   #error "The provided BOARD_SCREEN_COMBO ID is not a valid or supported configuration."
 #endif
-
+#endif   // !defined BOARD_SCREEN_COMBO
 
 
 #endif

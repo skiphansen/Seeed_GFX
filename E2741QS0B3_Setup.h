@@ -1,18 +1,14 @@
-#pragma message "setup included"
+#pragma message "E2741QS0B3_Setup.h included"
 
 #include <Wire.h>
 
 #define USE_BWRY_EPAPER
 #define ENABLE_EPAPER_BOARD_PIN_SETUPS
 
-#define USER_SETUP_ID 512
-
-#define JD79667_DRIVER
-
 #define EPAPER_ENABLE
 
-#define TFT_WIDTH 128
-#define TFT_HEIGHT 296
+#define TFT_WIDTH 800
+#define TFT_HEIGHT 480
 
 #define EPD_WIDTH TFT_WIDTH
 #define EPD_HEIGHT TFT_HEIGHT
@@ -20,7 +16,6 @@
 //#define EPD_HORIZONTAL_MIRROR
 
 #ifdef ENABLE_EPAPER_BOARD_PIN_SETUPS
-#pragma message "including User_Setups/EPaper_Board_Pins_Setups.h"
 #include "User_Setups/EPaper_Board_Pins_Setups.h"
 #else
 #define TFT_SCLK D8
@@ -78,3 +73,6 @@
 #define SPI_FREQUENCY 10000000
 #define SPI_READ_FREQUENCY 4000000
 #endif
+
+#undef SPI_FREQUENCY
+#define SPI_FREQUENCY   5000000
