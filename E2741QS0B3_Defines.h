@@ -117,6 +117,7 @@ void E2741Q_wakeup(void);
 #define EPD_PUSH_NEW_COLORS(w, h, colors)   \
     do                                      \
     {                                       \
+       LOG("Custom EPD_PUSH_NEW_COLORS called, %d / %d \n",w,h); \
         uint16_t bytes_per_row = (w) / 2;   \
         uint8_t temp1, temp2, temp3, temp4;               \
         int BytesWritten = 0; \
