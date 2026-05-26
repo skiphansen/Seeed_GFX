@@ -1,6 +1,5 @@
 #ifndef DYNAMIC_SETUP_H
 #define DYNAMIC_SETUP_H
-#pragma message "Dynamic_setup.h included"
 
 
 #if defined(ARDUINO_SEEED_XIAO_RA4M1) && !defined(SEEED_XIAO_RA4M1_SERIAL_PRINTF_SHIM)

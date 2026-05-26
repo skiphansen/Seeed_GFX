@@ -35,7 +35,6 @@
 #define TFT_RST 38 // D11
 #define TFT_ENABLE 43
 #elif defined(USE_XIAO_EPAPER_DISPLAY_BOARD_EE04)
-#pragma message "USE_XIAO_EPAPER_DISPLAY_BOARD_EE04 defined"
 
 #define TFT_SCLK D8
 #define TFT_MISO -1

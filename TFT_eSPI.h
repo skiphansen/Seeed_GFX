@@ -917,6 +917,9 @@ public:
   void getSetup(setup_t &tft_settings); // Sketch provides the instance to populate
   bool verifySetupID(uint32_t id);
 
+  void getTextBounds(const String &str,int16_t x,int16_t y,int16_t *x1,
+                     int16_t *y1,uint16_t *w,uint16_t *h);
+
   // Global variables
 #if !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
   static SPIClass &getSPIinstance(void); // Get SPI class handle
@@ -1078,10 +1081,6 @@ protected:
 #endif
 #else
 #include "Extensions/Touch.h" // Loaded if TOUCH_CS is defined by user
-#endif
-#else
-#if !defined(DISABLE_ALL_LIBRARY_WARNINGS)
-#warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
 #endif
 #endif
 

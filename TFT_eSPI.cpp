@@ -14,7 +14,14 @@
  ****************************************************/
 
 #include "TFT_eSPI.h"
+
+#define ENABLE_LOGGING  0
+#if ENABLE_LOGGING && __has_include("logging.h") 
 #include "logging.h"
+#else
+#define LOG(format, ...)
+#define LOG_RAW(format, ...)
+#endif
 
 #ifdef CUSTOM_DEFINES
 #include CUSTOM_DEFINES
@@ -6687,6 +6694,29 @@ void TFT_eSPI::getSetup(setup_t &tft_settings)
   tft_settings.tch_spi_freq = 0;
 #endif
 }
+
+/**************************************************************************/
+/*!
+    @brief  Helper to determine size of a string with current font/size.
+            Pass string and a cursor position, returns UL corner and W,H.
+    @param  str  The ASCII string to measure
+    @param  x    The current cursor X
+    @param  y    The current cursor Y
+    @param  x1   The boundary X coordinate, returned by function
+    @param  y1   The boundary Y coordinate, returned by function
+    @param  w    The boundary width, returned by function
+    @param  h    The boundary height, returned by function
+*/
+/**************************************************************************/
+void TFT_eSPI::getTextBounds(const String &str,int16_t x,int16_t y,int16_t *x1,
+                             int16_t *y1,uint16_t *w,uint16_t *h)
+{
+   *w =  textWidth(str);
+   *h =  fontHeight();
+   *x1 = x + *w;
+   *y1 = y + *h;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

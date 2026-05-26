@@ -15,7 +15,14 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdint.h>
+
+#define ENABLE_LOGGING  0
+#if ENABLE_LOGGING && __has_include("logging.h") 
 #include "logging.h"
+#else
+#define LOG(format, ...)
+#define LOG_RAW(format, ...)
+#endif
 
 #ifndef GCC_PACKED
 #if defined(__GNUC__)
@@ -25,6 +32,7 @@
 #endif
 #endif
 
+#if ENABLE_LOGGING
 void DumpHex(void *AdrIn,int Len)
 {
    unsigned char *Adr = (unsigned char *) AdrIn;
@@ -90,6 +98,7 @@ void DumpHexSrc(void *AdrIn,int Len)
       LOG_RAW("\n");
    }
 }
+#endif
 
 
 #ifdef E2741QS0B3
@@ -250,7 +259,9 @@ void RunSequence(const uint8_t *p)
 void WaitBusy(uint8_t State)
 {
    volatile int Busy;
+#if ENABLE_LOGGING
    const char *DesiredState = State ? "high" : "low";
+#endif
 
    pinMode(4,INPUT);
    Busy = digitalRead(4);

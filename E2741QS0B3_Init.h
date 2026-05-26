@@ -1,5 +1,3 @@
-#pragma message "Init included"
-
 void E2741Q_init();
 
 {

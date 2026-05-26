@@ -1,5 +1,3 @@
-#pragma message "E2741QS0B3_Setup.h included"
-
 #include <Wire.h>
 
 #define USE_BWRY_EPAPER
