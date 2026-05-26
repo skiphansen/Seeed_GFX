@@ -223,7 +223,7 @@ void DrawOWM::drawCurrentSunrise(const owm_current_t &current)
   char timeBuffer[12] = {}; // big enough to accommodate "hh:mm:ss am"
   time_t ts = current.sunrise;
   tm *timeInfo = localtime(&ts);
-  _strftime(timeBuffer, sizeof(timeBuffer), TIME_FORMAT, timeInfo);
+  _strftime(timeBuffer, sizeof(timeBuffer),config.TimeFormat, timeInfo);
   drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, timeBuffer, LEFT);
 
   return;
@@ -506,7 +506,7 @@ void DrawOWM::drawCurrentSunset(const owm_current_t &current)
   char timeBuffer[12] = {}; // big enough to accommodate "hh:mm:ss am"
   time_t ts = current.sunset;
   tm *timeInfo = localtime(&ts);
-  _strftime(timeBuffer, sizeof(timeBuffer), TIME_FORMAT, timeInfo);
+  _strftime(timeBuffer, sizeof(timeBuffer),config.TimeFormat, timeInfo);
   drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, timeBuffer, LEFT);
 
   return;

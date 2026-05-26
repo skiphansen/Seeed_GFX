@@ -22,7 +22,6 @@
 #include <Arduino.h>
 
 #define ACCENT_COLOR TFT_RED
-//   #define HAS_BATT_CHARGER
 
 // LOCALE
 // If your locale is not here, you can add it by copying and modifying one of
@@ -98,29 +97,6 @@
 // #define UNITS_DAILY_PRECIP_MILLIMETERS
 // #define UNITS_DAILY_PRECIP_CENTIMETERS
 #define UNITS_DAILY_PRECIP_INCHES
-
-// Hypertext Transfer Protocol (HTTP)
-// HTTP
-//   HTTP does not provide encryption or any security measures, making it highly
-//   vulnerable to eavesdropping and data tampering. Has the advantage of using
-//   less power.
-// HTTPS_NO_CERT_VERIF
-//   HTTPS without X.509 certificate verification provides encryption but lacks
-//   authentication and is susceptible to man-in-the-middle attacks.
-// HTTPS_WITH_CERT_VERIF
-//   HTTPS with X.509 certificate verification offers the highest level of
-//   security by providing encryption and verifying the identity of the server.
-//
-//   HTTPS with X.509 certificate verification comes with the draw back that
-//   eventually the certificates on the esp32 will expire, requiring you to
-//   update the certificates in cert.h and reflash this software.
-//   Running cert.py will generate an updated cert.h file.
-//   The current certificate for api.openweathermap.org is valid until
-//   2026-04-10 23:59:59+00:00
-// (uncomment exactly one)
-// #define USE_HTTP
-// #define USE_HTTPS_NO_CERT_VERIF
-#define USE_HTTPS_WITH_CERT_VERIF // REQUIRES MANUAL UPDATE WHEN CERT EXPIRES
 
 // WIND DIRECTION INDICATOR
 // Choose whether the wind direction indicator should be an arrow, number, or
@@ -277,9 +253,6 @@
 //   If you wish to disable battery monitoring set this macro to 0.
 #define BATTERY_MONITORING 1
 
-// NON-VOLATILE STORAGE (NVS) NAMESPACE
-#define NVS_NAMESPACE "weather_epd"
-
 // DEBUG
 //   If defined, enables increase verbosity over the serial port.
 //   level 0: basic status information, assists troubleshooting (default)
@@ -287,31 +260,11 @@
 //   level 2: print api responses to serial monitor
 #define DEBUG_LEVEL 0
 
-// LOCATION
-// Set your latitude and longitude.
-// (used to get weather data as part of API requests to OpenWeatherMap)
-#define LAT          "33.764651117558856"
-#define LON          "-118.3364370854526"
-
-// City name that will be shown in the top-right corner of the display.
-#define CITY_STRING  "Rancho Palos Verdes"
-
-// Time format used when displaying sunrise/set times. (Max 11 characters)
-// For more information about formatting see
-// https://man7.org/linux/man-pages/man3/strftime.3.html
-#define TIME_FORMAT "%l:%M %P" // 12-hour ex: 1:23 am  11:00 p
-
 // const char *TIME_FORMAT = "%H:%M";   // 24-hour ex: 01:23   23:00
 // Time format used when displaying axis labels. (Max 11 characters)
 // For more information about formatting see
 // https://man7.org/linux/man-pages/man3/strftime.3.html
 #define HOUR_FORMAT "%l%P" // 12-hour ex: 1am  11p
-
-// const char *HOUR_FORMAT = "%H";      // 24-hour ex: 01   23
-// Date format used when displaying date in top-right corner.
-// For more information about formatting see
-// https://man7.org/linux/man-pages/man3/strftime.3.html
-#define DATE_FORMAT "%a, %B %e" // ex: Sat, January 
 
 // Date/Time format used when displaying the last refresh time along the bottom
 // of the screen.
@@ -323,21 +276,14 @@
 // Number of hours to display on the outlook graph. (range: [8-48])
 #define HOURLY_GRAPH_MAX   24
 
-// BATTERY
-// To protect the battery upon LOW_BATTERY_VOLTAGE, the display will cease to
-// update until battery is charged again. The ESP32 will deep-sleep (consuming
-// < 11μA), waking briefly check the voltage at the corresponding interval (in
-// minutes). Once the battery voltage has fallen to CRIT_LOW_BATTERY_VOLTAGE,
-// the esp32 will hibernate and a manual press of the reset (RST) button to
-// begin operating again.
-#define WARN_BATTERY_VOLTAGE     3535 // (millivolts) ~20%
-#define LOW_BATTERY_VOLTAGE      3462 // (millivolts) ~10%
-#define VERY_LOW_BATTERY_VOLTAGE 3442 // (millivolts)  ~8%
-#define CRIT_LOW_BATTERY_VOLTAGE 3404 // (millivolts)  ~5%
+#define WARN_BATTERY_VOLTAGE     2400 // (millivolts) ~20%
+#define LOW_BATTERY_VOLTAGE      2200 // (millivolts) ~10%
+#define VERY_LOW_BATTERY_VOLTAGE 2000 // (millivolts)  ~8%
+#define CRIT_LOW_BATTERY_VOLTAGE 1800 // (millivolts)  ~5%
 
 // Battery voltage calculations are based on a typical 3.7v LiPo.
-#define MAX_BATTERY_VOLTAGE      4200  // (millivolts)
-#define MIN_BATTERY_VOLTAGE      3000  // (millivolts)
+#define MAX_BATTERY_VOLTAGE      3200  // (millivolts)
+#define MIN_BATTERY_VOLTAGE      2400  // (millivolts)
 
 #if !(defined(LOCALE))
   #error Invalid configuration. Locale not selected.
@@ -384,11 +330,6 @@
       ^ defined(UNITS_DAILY_PRECIP_CENTIMETERS) \
       ^ defined(UNITS_DAILY_PRECIP_INCHES))
   #error Invalid configuration. Exactly one daily precipitation measurement must be selected.
-#endif
-#if !(  defined(USE_HTTP)                   \
-      ^ defined(USE_HTTPS_NO_CERT_VERIF)    \
-      ^ defined(USE_HTTPS_WITH_CERT_VERIF))
-  #error Invalid configuration. Exactly one HTTP mode must be selected.
 #endif
 #if !(  defined(WIND_INDICATOR_ARROW)                         \
       || (                                                    \

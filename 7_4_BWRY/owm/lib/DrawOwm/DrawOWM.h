@@ -15,13 +15,27 @@ typedef enum alignment
   CENTER
 } alignment_t;
 
+typedef struct {
+   const char *City;
+   const char *TimeFormat;
+   const char *DateFormat;
+   const char *ForecastApiResponse;
+   const char *AirPollutionApiResponse;
+   float inTemp;
+   float inHumidity;
+   uint16_t batteryVoltage;
+   int Rssi;
+} OwmArgs;
+
 class DrawOWM {
 public:
-   DrawOWM(EPaper &spr);
-   void DrawIt(const char *JsonDocument,const char *Pollution);
+   DrawOWM(EPaper &spr,OwmArgs &Args);
+   void DrawIt();
 
 private:
       EPaper &display;
+      OwmArgs &config;
+
    // too large to allocate locally on stack
 
       uint16_t getStringWidth(const String &text);
@@ -92,6 +106,9 @@ private:
                      const String &errMsgLn2);
       void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], 
                               int16_t w, int16_t h, uint16_t color);
+      void getDateStr(String &s, tm *timeInfo);
 
+      owm_resp_onecall_t       owm_onecall;
+      owm_resp_air_pollution_t owm_air_pollution;
 };
 #endif   // _DRAW_OWM_H_

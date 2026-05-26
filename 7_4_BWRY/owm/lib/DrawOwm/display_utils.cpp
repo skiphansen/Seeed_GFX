@@ -22,6 +22,7 @@
 #include <esp_adc_cal.h>
 
 #include <aqi.h>
+#include <DrawOWM.h>
 
 #include "_locale.h"
 #include "_strftime.h"
@@ -31,11 +32,6 @@
 
 // icon header files
 #include "icons/icons.h"
-
-uint32_t readBatteryVoltage()
-{
-   return 0;
-} // end readBatteryVoltage
 
 
 /* Returns battery percentage, rounded to the nearest integer.
@@ -103,10 +99,10 @@ const uint8_t *getBatBitmap24(uint32_t batPercent)
 
 /* Gets string with the current date.
  */
-void getDateStr(String &s, tm *timeInfo)
+void DrawOWM::getDateStr(String &s, tm *timeInfo)
 {
   char buf[48] = {};
-  _strftime(buf, sizeof(buf), DATE_FORMAT, timeInfo);
+  _strftime(buf, sizeof(buf),config.DateFormat, timeInfo);
   s = buf;
 
   // remove double spaces. %e will add an extra space, ie. " 1" instead of "1"
@@ -334,6 +330,31 @@ const char *getUVIdesc(unsigned int uvi)
   }
 } // end getUVIdesc
 
+/* Returns the wifi signal strength descriptor text for the given RSSI.
+ */
+const char *getWiFidesc(int rssi)
+{
+  if (rssi == 0)
+  {
+    return TXT_WIFI_NO_CONNECTION;
+  }
+  else if (rssi >= -50)
+  {
+    return TXT_WIFI_EXCELLENT;
+  }
+  else if (rssi >= -60)
+  {
+    return TXT_WIFI_GOOD;
+  }
+  else if (rssi >= -70)
+  {
+    return TXT_WIFI_FAIR;
+  }
+  else
+  {  // rssi < -70
+    return TXT_WIFI_WEAK;
+  }
+} // end getWiFidesc
 
 /* Returns 16x16 bitmap incidcating wifi status.
  */

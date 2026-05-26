@@ -27,8 +27,21 @@ Here is the 6 colors you can display:
 
 EPaper epaper;
 
-void setup() {
+void setup() 
+{
+   OwmArgs Args;
+
    Serial.begin(115200);
+// City name that will be shown in the top-right corner of the display.
+   Args.City = "Rancho Palos Verdes";
+   Args.TimeFormat = "%l:%M %P";
+   Args.DateFormat = "%a, %B %e";
+   Args.ForecastApiResponse = OwmForecastTestResponse;
+   Args.AirPollutionApiResponse = OwmAirPollutionTestResponse;
+   Args.inTemp     = NAN;
+   Args.inHumidity = NAN;
+   Args.batteryVoltage = 2960;
+   Args.Rssi = -59;
 
    while (!Serial);
    delay(250);
@@ -46,9 +59,10 @@ void setup() {
       epaper.begin();
       epaper.setRotation(1);
       epaper.fillScreen(TFT_WHITE);
-      class DrawOWM owm = DrawOWM(epaper);
+      class DrawOWM *owm = new DrawOWM(epaper,Args);
 
-      owm.DrawIt(OwmForecastTestResponse,OwmAirPollutionTestResponse);
+      owm->DrawIt();
+      delete owm;
       epaper.update(); // update the display
    }
 }
