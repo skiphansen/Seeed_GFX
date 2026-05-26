@@ -27,6 +27,9 @@ void DrawOWM::DrawIt(const char *ForecastResponse,const char *Pollution)
    tm timeInfo = {};
    String dateStr = "date";
 
+   setenv("TZ", TIMEZONE, 1);
+   tzset();
+
    deserializeOneCall(ForecastResponse,owm_onecall);
    deserializeAirQuality(Pollution,owm_air_pollution);
    drawCurrentConditions(owm_onecall.current, owm_onecall.daily[0],
