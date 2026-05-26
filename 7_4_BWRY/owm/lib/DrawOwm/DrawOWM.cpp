@@ -4,6 +4,7 @@
 #include "TFT_eSPI.h"
 #include "config.h"
 #include <DrawOWM.h>
+#include "display_utils.h"
 
 #define ENABLE_LOGGING  1
 #if ENABLE_LOGGING && __has_include("logging.h") 
@@ -25,12 +26,14 @@ void DrawOWM::DrawIt(const char *ForecastResponse,const char *Pollution)
    float inTemp     = NAN;
    float inHumidity = NAN;
    tm timeInfo = {};
-   String dateStr = "date";
-
-   setenv("TZ", TIMEZONE, 1);
-   tzset();
+   String dateStr;
+   time_t CurrentTime;
 
    deserializeOneCall(ForecastResponse,owm_onecall);
+   CurrentTime = (time_t) owm_onecall.current.dt;
+   localtime_r(&CurrentTime, &timeInfo);
+   getDateStr(dateStr, &timeInfo);
+
    deserializeAirQuality(Pollution,owm_air_pollution);
    drawCurrentConditions(owm_onecall.current, owm_onecall.daily[0],
                          owm_air_pollution, inTemp, inHumidity);

@@ -40,6 +40,9 @@ void setup() {
       while (!Serial.available());
       int incomingByte = Serial.read();
 
+      setenv("TZ", "PST8PDT", 1);
+      tzset();
+
       epaper.begin();
       epaper.setRotation(1);
       epaper.fillScreen(TFT_WHITE);

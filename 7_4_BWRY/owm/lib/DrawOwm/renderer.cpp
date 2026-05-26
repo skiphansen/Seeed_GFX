@@ -46,20 +46,14 @@
  */
 uint16_t DrawOWM::getStringWidth(const String &text)
 {
-  int16_t x1, y1;
-  uint16_t w, h;
-  display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
-  return w;
+  return display.textWidth(text);
 }
 
 /* Returns the string height in pixels
  */
 uint16_t DrawOWM::getStringHeight(const String &text)
 {
-  int16_t x1, y1;
-  uint16_t w, h;
-  display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
-  return h;
+  return display.fontHeight();
 }
 
 /* Draws a string with alignment
