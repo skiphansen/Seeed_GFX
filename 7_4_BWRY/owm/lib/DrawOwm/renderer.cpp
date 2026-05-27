@@ -56,7 +56,7 @@ void DrawOWM::drawString(int16_t x, int16_t y, const String &text, alignment_t a
   int16_t x1, y1;
   uint16_t w, h;
   display.setTextColor(color);
-  display.getTextBounds(text, x, y, &x1, &y1, &w, &h);
+  getTextBounds(text, x, y, &x1, &y1, &w, &h);
   if (alignment == RIGHT)
   {
     x = x - w;
@@ -92,7 +92,7 @@ void DrawOWM::drawMultiLnString(int16_t x, int16_t y, const String &text,
     int16_t  x1, y1;
     uint16_t w, h;
 
-    display.getTextBounds(textRemaining, 0, 0, &x1, &y1, &w, &h);
+    getTextBounds(textRemaining, 0, 0, &x1, &y1, &w, &h);
 
     int endIndex = textRemaining.length();
     // check if remaining text is to wide, if it is then print what we can
@@ -145,13 +145,13 @@ void DrawOWM::drawMultiLnString(int16_t x, int16_t y, const String &text,
         if (current_line < max_lines - 1)
         {
           // this is not the last line
-          display.getTextBounds(subStr, 0, 0, &x1, &y1, &w, &h);
+          getTextBounds(subStr, 0, 0, &x1, &y1, &w, &h);
         }
         else
         {
           // this is the last line, we need to make sure there is space for
           // ellipsis
-          display.getTextBounds(subStr + "...", 0, 0, &x1, &y1, &w, &h);
+          getTextBounds(subStr + "...", 0, 0, &x1, &y1, &w, &h);
           if (w <= max_width)
           {
             // ellipsis fit, add them to subStr
@@ -1709,4 +1709,27 @@ void DrawOWM::drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], i
       }
    }
 }
+
+/**************************************************************************/
+/*!
+    @brief  Helper to determine size of a string with current font/size.
+            Pass string and a cursor position, returns UL corner and W,H.
+    @param  str  The ASCII string to measure
+    @param  x    The current cursor X
+    @param  y    The current cursor Y
+    @param  x1   The boundary X coordinate, returned by function
+    @param  y1   The boundary Y coordinate, returned by function
+    @param  w    The boundary width, returned by function
+    @param  h    The boundary height, returned by function
+*/
+/**************************************************************************/
+void DrawOWM::getTextBounds(const String &str,int16_t x,int16_t y,int16_t *x1,
+                             int16_t *y1,uint16_t *w,uint16_t *h)
+{
+   *w =  display.textWidth(str);
+   *h =  display.fontHeight();
+   *x1 = x + *w;
+   *y1 = y + *h;
+}
+
 

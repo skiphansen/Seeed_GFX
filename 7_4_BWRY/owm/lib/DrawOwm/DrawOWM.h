@@ -107,6 +107,8 @@ private:
       void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], 
                               int16_t w, int16_t h, uint16_t color);
       void getDateStr(String &s, tm *timeInfo);
+      void getTextBounds(const String &str,int16_t x,int16_t y,int16_t *x1,
+                         int16_t *y1,uint16_t *w,uint16_t *h);
 
       owm_resp_onecall_t       owm_onecall;
       owm_resp_air_pollution_t owm_air_pollution;
