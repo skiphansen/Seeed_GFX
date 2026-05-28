@@ -72,6 +72,8 @@ void setup()
       Args.bDisplayAlerts = Args.bMetric ? false : true;
       Args.bDisplayAlerts = Args.bMetric ? false : true;
       if(Args.bHighRes) {
+         Args.DisplayWidth    = 800;
+         Args.DisplayHeight   = 480;
          Args.PosSunrise      = 0;
          Args.PosSunset       = 1;
          Args.PosWind         = 2;
@@ -89,6 +91,8 @@ void setup()
       }
       else {
      // if a 640 x 384 display is used, then positions 6,7,8,9 are not available
+         Args.DisplayWidth    = 640;
+         Args.DisplayHeight   = 384;
          Args.PosSunrise      = 0;
          Args.PosSunset       = 1;
          Args.PosWind         = 2;

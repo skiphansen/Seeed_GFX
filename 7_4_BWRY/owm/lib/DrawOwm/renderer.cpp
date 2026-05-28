@@ -850,7 +850,7 @@ void DrawOWM::drawCurrentConditions(const owm_current_t &current,
     drawString(196 + 164 / 2 - 20, 196 / 2 + 69 / 2, dataStr, CENTER);
   }
   else {
-     drawString(156 + 164 / 2 - 20, 196 / 2 + 69 / 2, dataStr, CENTER);
+    drawString(156 + 164 / 2 - 20, 196 / 2 + 69 / 2, dataStr, CENTER);
   }
   display.setFreeFont(&FONT_14pt8b);
   drawString(display.getCursorX(), 196 / 2 - 69 / 2 + 20, unitStr, LEFT);
@@ -870,13 +870,13 @@ void DrawOWM::drawCurrentConditions(const owm_current_t &current,
   }
   display.setFreeFont(&FONT_12pt8b);
   if(config.bHighRes) {
-     drawString(196 + 164 / 2, 98 + 69 / 2 + 12 + 17, dataStr, CENTER);
+    drawString(196 + 164 / 2, 98 + 69 / 2 + 12 + 17, dataStr, CENTER);
   }
   else {
-     drawString(156 + 164 / 2, 98 + 69 / 2 + 12 + 17, dataStr, CENTER);
+    drawString(156 + 164 / 2, 98 + 69 / 2 + 12 + 17, dataStr, CENTER);
   }
   // line dividing top and bottom display areas
-  // display.drawLine(0, 196, DISP_WIDTH - 1, 196, TFT_BLACK);
+  // display.drawLine(0, 196, config.DisplayWidth - 1, 196, TFT_BLACK);
 
   // draw current data of the left panel
 
@@ -1073,7 +1073,7 @@ void DrawOWM::drawAlerts(std::vector<owm_alerts_t> & alerts,
   int city_w = getStringWidth(city);
   display.setFreeFont(&FONT_12pt8b);
   int date_w = getStringWidth(date);
-  int max_w = DISP_WIDTH - 2 - std::max(city_w, date_w) - (196 + 4) - 8;
+  int max_w = config.DisplayWidth - 2 - std::max(city_w, date_w) - (196 + 4) - 8;
 
   // find indices of valid alerts
   int num_valid_alerts = 0;
@@ -1158,9 +1158,9 @@ void DrawOWM::drawLocationDate(const String &city, const String &date)
 {
   // location, date
   display.setFreeFont(&FONT_16pt8b);
-  drawString(DISP_WIDTH - 2, 23, city, RIGHT, ACCENT_COLOR);
+  drawString(config.DisplayWidth - 2, 23, city, RIGHT, ACCENT_COLOR);
   display.setFreeFont(&FONT_12pt8b);
-  drawString(DISP_WIDTH - 2, 30 + 4 + 17, date, RIGHT);
+  drawString(config.DisplayWidth - 2, 30 + 4 + 17, date, RIGHT);
   return;
 } // end drawLocationDate
 
@@ -1197,9 +1197,9 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
                       tm timeInfo)
 {
   const int xPos0 = 350;
-  int xPos1 = DISP_WIDTH;
+  int xPos1 = config.DisplayWidth;
   const int yPos0 = 216;
-  const int yPos1 = DISP_HEIGHT - 46;
+  const int yPos1 = config.DisplayHeight - 46;
 
   // calculate y max/min and intervals
   int yMajorTicks = 5;
@@ -1271,7 +1271,7 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
   float precipBoundMax;
   switch(config.PrecipHrType) {
       case UNITS_HOURLY_PRECIP_POP:
-        xPos1 = DISP_WIDTH - 23;
+        xPos1 = config.DisplayWidth - 23;
         if (precipMax > 0)
         {
           precipBoundMax = 100.0f;
@@ -1283,13 +1283,13 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
         break;
 
       case UNITS_HOURLY_PRECIP_MILLIMETERS:
-        xPos1 = DISP_WIDTH - 24;
+        xPos1 = config.DisplayWidth - 24;
         precipBoundMax = std::ceil(precipMax); // Round up to nearest mm
         yPrecipMajorTickDecimals = (precipBoundMax < 10);
         break;
 
       case UNITS_HOURLY_PRECIP_CENTIMETERS:
-        xPos1 = DISP_WIDTH - 25;
+        xPos1 = config.DisplayWidth - 25;
         precipMax = millimeters_to_centimeters(precipMax);
         // Round up to nearest 0.1 cm
         precipBoundMax = std::ceil(precipMax * 10) / 10.0f;
@@ -1312,7 +1312,7 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
         break;
 
       case UNITS_HOURLY_PRECIP_INCHES:
-        xPos1 = DISP_WIDTH - 25;
+        xPos1 = config.DisplayWidth - 25;
         precipMax = millimeters_to_inches(precipMax);
         // Round up to nearest 0.1 inch
         precipBoundMax = std::ceil(precipMax * 10) / 10.0f;
@@ -1553,7 +1553,7 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
   String dataStr;
   uint16_t dataColor = TFT_BLACK;
   display.setFreeFont(&FONT_6pt8b);
-  int pos = DISP_WIDTH - 2;
+  int pos = config.DisplayWidth - 2;
   const int sp = 2;
 
 #if BATTERY_MONITORING
@@ -1575,11 +1575,11 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
 #if STATUS_BAR_EXTRAS_BAT_VOLTAGE
   dataStr += " (" + String( std::round(batVoltage / 10.f) / 100.f, 2 ) + "v)";
 #endif
-  drawString(pos, DISP_HEIGHT - 1 - 2, dataStr, RIGHT, dataColor);
+  drawString(pos, config.DisplayHeight - 1 - 2, dataStr, RIGHT, dataColor);
   pos -= getStringWidth(dataStr) + 1;
 #endif
   pos -= 24;
-  drawInvertedBitmap(pos, DISP_HEIGHT - 1 - 17,
+  drawInvertedBitmap(pos, config.DisplayHeight - 1 - 17,
                              getBatBitmap24(batPercent), 24, 24, dataColor);
   pos -= sp + 9;
 #endif
@@ -1597,19 +1597,19 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
     dataStr += " (" + String(rssi) + "dBm)";
   }
 #endif
-  drawString(pos, DISP_HEIGHT - 1 - 2, dataStr, RIGHT, dataColor);
+  drawString(pos, config.DisplayHeight - 1 - 2, dataStr, RIGHT, dataColor);
   pos -= getStringWidth(dataStr) + 1;
 #endif
   pos -= 18;
-  drawInvertedBitmap(pos, DISP_HEIGHT - 1 - 13, getWiFiBitmap16(rssi),
+  drawInvertedBitmap(pos, config.DisplayHeight - 1 - 13, getWiFiBitmap16(rssi),
                              16, 16, dataColor);
   pos -= sp + 8;
 
   // last refresh
   dataColor = TFT_BLACK;
-  drawString(pos, DISP_HEIGHT - 1 - 2, refreshTimeStr, RIGHT, dataColor);
+  drawString(pos, config.DisplayHeight - 1 - 2, refreshTimeStr, RIGHT, dataColor);
   pos -= getStringWidth(refreshTimeStr) + 25;
-  drawInvertedBitmap(pos, DISP_HEIGHT - 1 - 21, wi_refresh_32x32,
+  drawInvertedBitmap(pos, config.DisplayHeight - 1 - 21, wi_refresh_32x32,
                              32, 32, dataColor);
   pos -= sp;
 
@@ -1617,9 +1617,9 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
   dataColor = ACCENT_COLOR;
   if (!statusStr.isEmpty())
   {
-    drawString(pos, DISP_HEIGHT - 1 - 2, statusStr, RIGHT, dataColor);
+    drawString(pos, config.DisplayHeight - 1 - 2, statusStr, RIGHT, dataColor);
     pos -= getStringWidth(statusStr) + 24;
-    drawInvertedBitmap(pos, DISP_HEIGHT - 1 - 18, error_icon_24x24,
+    drawInvertedBitmap(pos, config.DisplayHeight - 1 - 18, error_icon_24x24,
                                24, 24, dataColor);
   }
 
@@ -1638,21 +1638,21 @@ void DrawOWM::drawError(const uint8_t *bitmap_196x196,
   display.setFreeFont(&FONT_26pt8b);
   if (!errMsgLn2.isEmpty())
   {
-    drawString(DISP_WIDTH / 2,
-               DISP_HEIGHT / 2 + 196 / 2 + 21,
+    drawString(config.DisplayWidth / 2,
+               config.DisplayHeight / 2 + 196 / 2 + 21,
                errMsgLn1, CENTER);
-    drawString(DISP_WIDTH / 2,
-               DISP_HEIGHT / 2 + 196 / 2 + 21 + 55,
+    drawString(config.DisplayWidth / 2,
+               config.DisplayHeight / 2 + 196 / 2 + 21 + 55,
                errMsgLn2, CENTER);
   }
   else
   {
-    drawMultiLnString(DISP_WIDTH / 2,
-                      DISP_HEIGHT / 2 + 196 / 2 + 21,
-                      errMsgLn1, CENTER, DISP_WIDTH - 200, 2, 55);
+    drawMultiLnString(config.DisplayWidth / 2,
+                      config.DisplayHeight / 2 + 196 / 2 + 21,
+                      errMsgLn1, CENTER, config.DisplayWidth - 200, 2, 55);
   }
-  drawInvertedBitmap(DISP_WIDTH / 2 - 196 / 2,
-                             DISP_HEIGHT / 2 - 196 / 2 - 21,
+  drawInvertedBitmap(config.DisplayWidth / 2 - 196 / 2,
+                             config.DisplayHeight / 2 - 196 / 2 - 21,
                              bitmap_196x196, 196, 196, ACCENT_COLOR);
   return;
 } // end drawError

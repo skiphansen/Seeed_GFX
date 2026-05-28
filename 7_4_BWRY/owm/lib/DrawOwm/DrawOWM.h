@@ -5,9 +5,6 @@
 #include "api_response.h"
 #include "config.h"
 
-#define DISP_WIDTH  800
-#define DISP_HEIGHT 480
-
 // for compatibility with Seeed_GFX
 #ifdef EPAPER_ENABLE
    #define _THE_DISPLAY_CLASS EPaper
@@ -128,6 +125,8 @@ typedef struct {
    int8_t PosMoonset;
    int8_t PosMoonphase;
    int8_t PosDewpoint;
+   uint16_t DisplayWidth;
+   uint16_t DisplayHeight;
 
    float inTemp;
    float inHumidity;
