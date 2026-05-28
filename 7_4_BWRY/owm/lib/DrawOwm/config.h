@@ -79,31 +79,6 @@
 // #define WIND_ICONS_TERTIARY_INTERCARDINAL
 // #define WIND_ICONS_360
 
-// WIDGET POSITIONS
-// Set the order of current condition you want to display
-// in the following order
-//  0   1
-//  2   3
-//  4   5
-//  6   7
-//  8   9
-// if a 640 x 384 display is used, then positions 6,7,8,9 are not available
-#define POS_SUNRISE     0
-#define POS_SUNSET      1
-#define POS_WIND        2
-#define POS_HUMIDITY    3
-#define POS_UVI         4
-#define POS_PRESSURE    5
-#define POS_AIR_QULITY  6
-#define POS_VISIBILITY  7
-#define POS_INTEMP      8
-#define POS_INHUMIDITY  9
-// #define POS_MOONRISE    2
-// #define POS_MOONSET     3
-// #define POS_MOONPHASE   4
-// #define POS_DEWPOINT    5
-
-
 // Choose the style of moon phase icon you like
 //   Primary     : dark color means where the moon is
 //   Alternative : dark color means where the shadow is
@@ -194,6 +169,12 @@
 
 // const char *TIME_FORMAT = "%H:%M";   // 24-hour ex: 01:23   23:00
 // Time format used when displaying axis labels. (Max 11 characters)
+// For more information about formatting see
+// https://man7.org/linux/man-pages/man3/strftime.3.html
+#define TIME_FORMAT "%l:%M %P" // 12-hour ex: 1:23 am  11:00 pm
+
+// const char *HOUR_FORMAT = "%H";      // 24-hour ex: 01   23
+// Date format used when displaying date in top-right corner.
 // For more information about formatting see
 // https://man7.org/linux/man-pages/man3/strftime.3.html
 #define HOUR_FORMAT "%l%P" // 12-hour ex: 1am  11p

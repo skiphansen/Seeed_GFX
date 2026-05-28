@@ -196,12 +196,11 @@ void DrawOWM::powerOffDisplay()
  */
 
 // drawCurrentSunrise
-#ifdef POS_SUNRISE
 void DrawOWM::drawCurrentSunrise(const owm_current_t &current)
 {
   String dataStr, unitStr;
-  int PosX = POS_SUNRISE % 2;
-  int PosY = static_cast<int>(POS_SUNRISE / 2);
+  int PosX = config.PosSunrise % 2;
+  int PosY = static_cast<int>(config.PosSunrise / 2);
     // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
                              wi_sunrise_48x48, 48, 48, TFT_BLACK);
@@ -220,16 +219,14 @@ void DrawOWM::drawCurrentSunrise(const owm_current_t &current)
 
   return;
 }
-# endif
 // end drawCurrentSunrise
 
 // drawCurrentWind
-#ifdef POS_WIND
 void DrawOWM::drawCurrentWind(const owm_current_t &current)
 {
   String dataStr, unitStr;
-  int PosX = (POS_WIND % 2);
-  int PosY = static_cast<int>(POS_WIND / 2);
+  int PosX = (config.PosWind % 2);
+  int PosY = static_cast<int>(config.PosWind / 2);
 
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -304,16 +301,14 @@ void DrawOWM::drawCurrentWind(const owm_current_t &current)
 
   return;
 }
-#endif
 // end drawCurrentWind
 
 // drawCurrentUVI
-#ifdef POS_UVI
 void DrawOWM::drawCurrentUVI(const owm_current_t &current)
 {
   String dataStr, unitStr;
-  int PosX = (POS_UVI % 2);
-  int PosY = static_cast<int>(POS_UVI / 2);
+  int PosX = (config.PosUvi % 2);
+  int PosY = static_cast<int>(config.PosUvi / 2);
 
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -358,16 +353,14 @@ void DrawOWM::drawCurrentUVI(const owm_current_t &current)
   }
   return;
 }
-#endif
 // end drawCurrentUVI
 
 // drawCurrentAirQuality
-#ifdef POS_AIR_QULITY
 void DrawOWM::drawCurrentAirQuality(const owm_resp_air_pollution_t &owm_air_pollution)
 {
   String dataStr, unitStr;
-  int PosX = (POS_AIR_QULITY % 2);
-  int PosY = static_cast<int>(POS_AIR_QULITY / 2);
+  int PosX = (config.PosAirQuality % 2);
+  int PosY = static_cast<int>(config.PosAirQuality / 2);
 
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -433,16 +426,14 @@ void DrawOWM::drawCurrentAirQuality(const owm_resp_air_pollution_t &owm_air_poll
 
   return;
 }
-#endif
 // end drawCurrentAirQuality
 
 // drawCurrentInTemp
-#ifdef POS_INTEMP
 void DrawOWM::drawCurrentInTemp(float inTemp)
 {
   String dataStr, unitStr;
-  int PosX = (POS_INTEMP % 2);
-  int PosY = static_cast<int>(POS_INTEMP / 2);
+  int PosX = (config.PosIntemp % 2);
+  int PosY = static_cast<int>(config.PosIntemp / 2);
 
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -472,16 +463,14 @@ void DrawOWM::drawCurrentInTemp(float inTemp)
   drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
   return;
 }
-#endif
 // end drawCurrentInTemp
 
 // drawCurrentSunset
-#ifdef POS_SUNSET
 void DrawOWM::drawCurrentSunset(const owm_current_t &current)
 {
   String dataStr, unitStr;
-  int PosX = (POS_SUNSET % 2);
-  int PosY = static_cast<int>(POS_SUNSET / 2);
+  int PosX = (config.PosSunset % 2);
+  int PosY = static_cast<int>(config.PosSunset / 2);
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
                              wi_sunset_48x48, 48, 48, TFT_BLACK);
@@ -500,16 +489,14 @@ void DrawOWM::drawCurrentSunset(const owm_current_t &current)
 
   return;
 }
-#endif
 // end drawCurrentSunset
 
 // drawCurrentHumidity
-#ifdef POS_HUMIDITY
 void DrawOWM::drawCurrentHumidity(const owm_current_t &current)
 {
   String dataStr, unitStr;
-  int PosX = (POS_HUMIDITY % 2);
-  int PosY = static_cast<int>(POS_HUMIDITY / 2);
+  int PosX = (config.PosHumidity % 2);
+  int PosY = static_cast<int>(config.PosHumidity / 2);
 
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -528,16 +515,14 @@ void DrawOWM::drawCurrentHumidity(const owm_current_t &current)
              "%", LEFT);
   return;
 }
-#endif
 // end drawCurrentHumidity
 
 // drawCurrentPressure
-#ifdef POS_PRESSURE
 void DrawOWM::drawCurrentPressure(const owm_current_t &current)
 {
   String dataStr, unitStr;
-  int PosX = (POS_PRESSURE % 2);
-  int PosY = static_cast<int>(POS_PRESSURE / 2);
+  int PosX = (config.PosPressure % 2);
+  int PosY = static_cast<int>(config.PosPressure / 2);
   //  icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
                              wi_barometer_48x48, 48, 48, TFT_BLACK);
@@ -607,16 +592,14 @@ void DrawOWM::drawCurrentPressure(const owm_current_t &current)
 
   return;
 }
-#endif
 // end drawCurrentPressure
 
 // drawCurrentVisibility
-#ifdef POS_VISIBILITY
 void DrawOWM::drawCurrentVisibility(const owm_current_t &current)
 {
   String dataStr, unitStr;
-  int PosX = (POS_VISIBILITY % 2);
-  int PosY = static_cast<int>(POS_VISIBILITY / 2);
+  int PosX = (config.PosVisibility % 2);
+  int PosY = static_cast<int>(config.PosVisibility / 2);
 
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -661,16 +644,14 @@ void DrawOWM::drawCurrentVisibility(const owm_current_t &current)
 
   return;
 }
-#endif
 // end drawCurrentVisibility
 
 // drawCurrentInHumidit
-#ifdef POS_INHUMIDITY
 void DrawOWM::drawCurrentInHumidity(float inHumidity)
 {
   String dataStr, unitStr;
-  int PosX = (POS_INHUMIDITY % 2);
-  int PosY = static_cast<int>(POS_INHUMIDITY / 2);
+  int PosX = (config.PosInhumidity % 2);
+  int PosY = static_cast<int>(config.PosInhumidity / 2);
 
   // current weather data icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -696,16 +677,14 @@ void DrawOWM::drawCurrentInHumidity(float inHumidity)
              "%", LEFT);
   return;
 }
-#endif
 // end drawCurrentInHumidity
 
 // drawCurrentMoonrise
-#ifdef POS_MOONRISE
 void DrawOWM::drawCurrentMoonrise(const owm_daily_t &today)
 {
   String dataStr, unitStr;
-  int PosX = POS_MOONRISE % 2;
-  int PosY = static_cast<int>(POS_MOONRISE / 2);
+  int PosX = config.PosMoonrise % 2;
+  int PosY = static_cast<int>(config.PosMoonrise / 2);
 
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -725,16 +704,14 @@ void DrawOWM::drawCurrentMoonrise(const owm_daily_t &today)
 
   return;
 }
-# endif
 // end drawCurrentMoonrise
 
 // drawCurrentMoonset
-#ifdef POS_MOONSET
 void DrawOWM::drawCurrentMoonset(const owm_daily_t &today)
 {
   String dataStr, unitStr;
-  int PosX = (POS_MOONSET % 2);
-  int PosY = static_cast<int>(POS_MOONSET / 2);
+  int PosX = (config.PosMoonset % 2);
+  int PosY = static_cast<int>(config.PosMoonset / 2);
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
                              wi_moonset_48x48, 48, 48, TFT_BLACK);
@@ -753,16 +730,14 @@ void DrawOWM::drawCurrentMoonset(const owm_daily_t &today)
 
   return;
 }
-#endif
 // end drawCurrentMoonset
 
 // drawCurrentMoonphase
-#ifdef POS_MOONPHASE
 void DrawOWM::drawCurrentMoonphase(const owm_daily_t &daily)
 {
   String dataStr, unitStr;
-  int PosX = (POS_MOONPHASE % 2);
-  int PosY = static_cast<int>(POS_MOONPHASE / 2);
+  int PosX = (config.PosMoonphase % 2);
+  int PosY = static_cast<int>(config.PosMoonphase / 2);
 
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -800,16 +775,14 @@ void DrawOWM::drawCurrentMoonphase(const owm_daily_t &daily)
 
   return;
 }
-#endif
 // end drawCurrentMoonphase
 
 // drawCurrentDewpoint
-#ifdef POS_DEWPOINT
 void DrawOWM::drawCurrentDewpoint(const owm_current_t &current)
 {
   String dataStr, unitStr;
-  int PosX = (POS_DEWPOINT % 2);
-  int PosY = static_cast<int>(POS_DEWPOINT / 2);
+  int PosX = (config.PosDewpoint % 2);
+  int PosY = static_cast<int>(config.PosDewpoint / 2);
   
   // icons
   drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
@@ -841,7 +814,6 @@ void DrawOWM::drawCurrentDewpoint(const owm_current_t &current)
   drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
   return;
 } 
-#endif
 // end drawCurrentDewpoint
 
 //End defining functions for left panel.
@@ -908,61 +880,61 @@ void DrawOWM::drawCurrentConditions(const owm_current_t &current,
 
   // draw current data of the left panel
 
-    # ifdef POS_SUNRISE
+    if(config.PosSunrise >= 0) {
      drawCurrentSunrise(current);
-    # endif
+    }
 
-    # ifdef POS_SUNSET
+    if(config.PosSunset>= 0) {
       drawCurrentSunset(current);
-    # endif
+    }
 
-    # ifdef POS_WIND
+    if(config.PosWind>= 0) {
       drawCurrentWind(current);
-    # endif
+    }
 
-    # ifdef POS_HUMIDITY
+    if(config.PosHumidity>= 0) {
       drawCurrentHumidity(current);
-    # endif
+    }
 
-    # ifdef POS_UVI
+    if(config.PosUvi >= 0) {
       drawCurrentUVI(current);
-    # endif
+    }
 
-    # ifdef POS_PRESSURE
+    if(config.PosPressure >= 0) {
       drawCurrentPressure(current);
-    # endif
+    }
 
-    # ifdef POS_VISIBILITY
+    if(config.PosVisibility >= 0) {
       drawCurrentVisibility(current);
-    # endif
+    }
 
-    # ifdef POS_AIR_QULITY
+    if(config.PosAirQuality >= 0) {
       drawCurrentAirQuality(owm_air_pollution);
-    # endif
+    }
 
-    # ifdef POS_INTEMP
+    if(config.PosIntemp >= 0) {
       drawCurrentInTemp(inTemp);
-    # endif
+    }
 
-    # ifdef POS_INHUMIDITY
+    if(config.PosInhumidity >= 0) {
       drawCurrentInHumidity(inHumidity);
-    # endif
+    }
 
-    # ifdef POS_MOONRISE
+    if(config.PosMoonrise >= 0) {
      drawCurrentMoonrise(today);
-    # endif
+    }
 
-    # ifdef POS_MOONSET
+    if(config.PosMoonset >= 0) {
       drawCurrentMoonset(today);
-    # endif
+    }
 
-    # ifdef POS_MOONPHASE
+    if(config.PosMoonphase >= 0) {
       drawCurrentMoonphase(today);
-    # endif
+    }
   
-    # ifdef POS_DEWPOINT
+    if(config.PosDewpoint >= 0) {
       drawCurrentDewpoint(current);
-    # endif
+    }
   
     // end drawing left panel
 

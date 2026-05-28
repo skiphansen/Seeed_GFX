@@ -105,6 +105,30 @@ typedef struct {
 //   Disable alerts by changing the DISPLAY_ALERTS macro to 0.
    bool bDisplayAlerts;
 
+// WIDGET POSITIONS
+// Set the order of current condition you want to display
+// in the following order
+//  0   1
+//  2   3
+//  4   5
+//  6   7
+//  8   9
+// if a 640 x 384 display is used, then positions 6,7,8,9 are not available
+   int8_t PosSunrise;
+   int8_t PosSunset;
+   int8_t PosWind;
+   int8_t PosHumidity;
+   int8_t PosUvi;
+   int8_t PosPressure;
+   int8_t PosAirQuality;
+   int8_t PosVisibility;
+   int8_t PosIntemp;
+   int8_t PosInhumidity;
+   int8_t PosMoonrise;
+   int8_t PosMoonset;
+   int8_t PosMoonphase;
+   int8_t PosDewpoint;
+
    float inTemp;
    float inHumidity;
    uint16_t batteryVoltage;
@@ -132,48 +156,20 @@ private:
                        uint16_t color=TFT_BLACK);
       void initDisplay();
       void powerOffDisplay();
-#ifdef POS_SUNRISE
       void drawCurrentSunrise(const owm_current_t &current);
-#endif
-#ifdef POS_WIND
       void drawCurrentWind(const owm_current_t &current);
-#endif
-#ifdef POS_UVI
       void drawCurrentUVI(const owm_current_t &current);
-#endif
-#ifdef POS_AIR_QULITY
       void drawCurrentAirQuality(const owm_resp_air_pollution_t &owm_air_pollution);
-#endif
-#ifdef POS_INTEMP
       void drawCurrentInTemp(float inTemp);
-#endif
-#ifdef POS_SUNSET
       void drawCurrentSunset(const owm_current_t &current);
-#endif
-#ifdef POS_HUMIDITY
       void drawCurrentHumidity(const owm_current_t &current);
-#endif
-#ifdef POS_PRESSURE
       void drawCurrentPressure(const owm_current_t &current);
-#endif
-#ifdef POS_VISIBILITY
       void drawCurrentVisibility(const owm_current_t &current);
-#endif
-#ifdef POS_INHUMIDITY
       void drawCurrentInHumidity(float inHumidity);
-#endif
-#ifdef POS_MOONRISE
       void drawCurrentMoonrise(const owm_daily_t &today);
-#endif
-#ifdef POS_MOONSET
       void drawCurrentMoonset(const owm_daily_t &today);
-#endif
-#ifdef POS_MOONPHASE
       void drawCurrentMoonphase(const owm_daily_t &daily);
-#endif
-#ifdef POS_DEWPOINT
       void drawCurrentDewpoint(const owm_current_t &current);
-#endif
       void drawCurrentConditions(const owm_current_t &current,
                                  const owm_daily_t &today,
                                  const owm_resp_air_pollution_t &owm_air_pollution,

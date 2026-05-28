@@ -44,6 +44,8 @@ void setup()
    Args.Rssi = -59;
    Args.bMetric = true;
    Args.bHighRes = true;
+
+
    setenv("TZ", "PST8PDT", 1);
    tzset();
 
@@ -66,7 +68,42 @@ void setup()
                                          UNITS_HOURLY_PRECIP_INCHES;
       Args.PressureType = Args.bMetric ? UNITS_PRES_MILLIBARS :
                                          UNITS_PRES_INCHESOFMERCURY;
+
       Args.bDisplayAlerts = Args.bMetric ? false : true;
+      Args.bDisplayAlerts = Args.bMetric ? false : true;
+      if(Args.bHighRes) {
+         Args.PosSunrise      = 0;
+         Args.PosSunset       = 1;
+         Args.PosWind         = 2;
+         Args.PosHumidity     = 3;
+         Args.PosUvi          = 4;
+         Args.PosPressure     = 5;
+         Args.PosAirQuality   = 6;
+         Args.PosVisibility   = 7;
+         Args.PosIntemp       = 8;
+         Args.PosInhumidity   = 9;
+         Args.PosMoonrise     = -1;
+         Args.PosMoonset      = -1;
+         Args.PosMoonphase    = -1;
+         Args.PosDewpoint     = -1;
+      }
+      else {
+     // if a 640 x 384 display is used, then positions 6,7,8,9 are not available
+         Args.PosSunrise      = 0;
+         Args.PosSunset       = 1;
+         Args.PosWind         = 2;
+         Args.PosHumidity     = 3;
+         Args.PosVisibility   = 4;
+         Args.PosIntemp       = 5;
+         Args.PosUvi          = -1;
+         Args.PosPressure     = -1;
+         Args.PosAirQuality   = -1;
+         Args.PosInhumidity   = -1;
+         Args.PosMoonrise     = -1;
+         Args.PosMoonset      = -1;
+         Args.PosMoonphase    = -1;
+         Args.PosDewpoint     = -1;
+      }
 
       epaper.begin();
 // Work around bug in Seeed TFT_eSPI library, fillScreen() doesn't handle
@@ -74,12 +111,17 @@ void setup()
       epaper.setRotation(0);
       epaper.fillScreen(TFT_WHITE);
       epaper.setRotation(1);
-      LOG("Updating display in %s mode.\n",
+      LOG("Updating %s res display in %s mode.\n",
+          Args.bHighRes ? "high" : "low",
           Args.bMetric ? "metric" : "english");
       class DrawOWM *owm = new DrawOWM(epaper,Args);
       owm->DrawIt();
       delete owm;
       epaper.update(); // update the display
+  // setup Args for next screen
+      if(!Args.bMetric) {
+         Args.bHighRes = !Args.bHighRes;
+      }
       Args.bMetric = !Args.bMetric;
    }
 }
