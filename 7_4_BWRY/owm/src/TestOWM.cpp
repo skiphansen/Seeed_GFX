@@ -42,6 +42,10 @@ void setup()
    Args.inHumidity = NAN;
    Args.batteryVoltage = 2960;
    Args.Rssi = -59;
+   Args.bMetric = true;
+   Args.bHighRes = true;
+   setenv("TZ", "PST8PDT", 1);
+   tzset();
 
    while (!Serial);
    delay(250);
@@ -49,21 +53,34 @@ void setup()
    LOG("Owm test\n");
 
    while (true) {
-      LOG("Press a key to continue");
+      LOG("Press a key to continue\n");
       while (!Serial.available());
       int incomingByte = Serial.read();
+      Args.WindSpeed = Args.bMetric ? UNITS_SPEED_KILOMETERSPERHOUR : 
+                     UNITS_SPEED_MILESPERHOUR;
+      Args.DistanceType = Args.bMetric ? UNITS_DIST_KILOMETERS : UNITS_DIST_MILES;
+      Args.PrecipType = Args.bMetric ? UNITS_DAILY_PRECIP_MILLIMETERS : 
+                                       UNITS_DAILY_PRECIP_INCHES;
 
-      setenv("TZ", "PST8PDT", 1);
-      tzset();
+      Args.PrecipHrType = Args.bMetric ? UNITS_HOURLY_PRECIP_MILLIMETERS :
+                                         UNITS_HOURLY_PRECIP_INCHES;
+      Args.PressureType = Args.bMetric ? UNITS_PRES_MILLIBARS :
+                                         UNITS_PRES_INCHESOFMERCURY;
+      Args.bDisplayAlerts = Args.bMetric ? false : true;
 
       epaper.begin();
-      epaper.setRotation(1);
+// Work around bug in Seeed TFT_eSPI library, fillScreen() doesn't handle
+// rotation correctly.
+      epaper.setRotation(0);
       epaper.fillScreen(TFT_WHITE);
+      epaper.setRotation(1);
+      LOG("Updating display in %s mode.\n",
+          Args.bMetric ? "metric" : "english");
       class DrawOWM *owm = new DrawOWM(epaper,Args);
-
       owm->DrawIt();
       delete owm;
       epaper.update(); // update the display
+      Args.bMetric = !Args.bMetric;
    }
 }
 

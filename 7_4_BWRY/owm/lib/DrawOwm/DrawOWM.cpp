@@ -14,9 +14,13 @@
 #define LOG_RAW(format, ...)
 #endif
 
-DrawOWM::DrawOWM(EPaper &epaper,OwmArgs &Args) : display(epaper), config(Args)
-{
-}
+// for compatibility with Seeed_GFX
+#ifdef EPAPER_ENABLE
+DrawOWM::DrawOWM(EPaper &epaper,OwmArgs &Args) : display(epaper), config(Args){}
+   #define _THE_DISPLAY_CLASS EPaper
+#else
+DrawOWM::DrawOWM(TFT_eSprite &epaper,OwmArgs &Args) : display(epaper), config(Args){}
+#endif
 
 void DrawOWM::DrawIt()
 {
@@ -26,7 +30,7 @@ void DrawOWM::DrawIt()
    time_t CurrentTime;
    String statusStr = {};
 
-   deserializeOneCall(config.ForecastApiResponse,owm_onecall);
+   deserializeOneCall(config.ForecastApiResponse,owm_onecall,config.bDisplayAlerts);
    CurrentTime = (time_t) owm_onecall.current.dt;
    localtime_r(&CurrentTime, &timeInfo);
    getRefreshTimeStr(refreshTimeStr,true,&timeInfo);
@@ -38,9 +42,9 @@ void DrawOWM::DrawIt()
    drawOutlookGraph(owm_onecall.hourly, owm_onecall.daily, timeInfo);
    drawForecast(owm_onecall.daily, timeInfo);
    drawLocationDate(config.City,dateStr);
-#if DISPLAY_ALERTS
-   drawAlerts(owm_onecall.alerts,config.City,dateStr);
-#endif
+   if(config.bDisplayAlerts ) {
+      drawAlerts(owm_onecall.alerts,config.City,dateStr);
+   }
    drawStatusBar(statusStr,refreshTimeStr,config.Rssi,config.batteryVoltage);
 }
 

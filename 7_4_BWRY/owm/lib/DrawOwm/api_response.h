@@ -210,7 +210,8 @@ typedef struct owm_resp_air_pollution
 } owm_resp_air_pollution_t;
 
 DeserializationError deserializeOneCall(const char *json,
-                                        owm_resp_onecall_t &r);
+                                        owm_resp_onecall_t &r,
+                                        bool bDisplayAlers);
 DeserializationError deserializeAirQuality(const char *json,
                                            owm_resp_air_pollution_t &r);
 

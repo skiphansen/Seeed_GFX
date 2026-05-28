@@ -40,64 +40,6 @@
 //   Spanish (Spain)                 es_ES
 #define LOCALE en_US
 
-// UNITS
-// Define exactly one macro for each measurement type below.
-
-// UNITS - TEMPERATURE
-//   Metric   : Celsius
-//   Imperial : Fahrenheit
-// #define UNITS_TEMP_KELVIN
-// #define UNITS_TEMP_CELSIUS
-#define UNITS_TEMP_FAHRENHEIT
-
-// UNITS - WIND SPEED
-//   Metric   : Kilometers per Hour
-//   Imperial : Miles per Hour
-// #define UNITS_SPEED_METERSPERSECOND
-// #define UNITS_SPEED_FEETPERSECOND
-// #define UNITS_SPEED_KILOMETERSPERHOUR
-#define UNITS_SPEED_MILESPERHOUR
-// #define UNITS_SPEED_KNOTS
-// #define UNITS_SPEED_BEAUFORT
-
-// UNITS - PRESSURE
-//   Metric   : Millibars
-//   Imperial : Inches of Mercury
-// #define UNITS_PRES_HECTOPASCALS
-// #define UNITS_PRES_PASCALS
-// #define UNITS_PRES_MILLIMETERSOFMERCURY
-#define UNITS_PRES_INCHESOFMERCURY
-// #define UNITS_PRES_MILLIBARS
-// #define UNITS_PRES_ATMOSPHERES
-// #define UNITS_PRES_GRAMSPERSQUARECENTIMETER
-// #define UNITS_PRES_POUNDSPERSQUAREINCH
-
-// UNITS - VISIBILITY DISTANCE
-//   Metric   : Kilometers
-//   Imperial : Miles
-// #define UNITS_DIST_KILOMETERS
-#define UNITS_DIST_MILES
-
-// UNITS - PRECIPITATION (HOURLY)
-// Measure of precipitation.
-// This can either be Probability of Precipitation (PoP) or hourly volume.
-//   Metric   : Millimeters
-//   Imperial : Inches
-#define UNITS_HOURLY_PRECIP_POP
-// #define UNITS_HOURLY_PRECIP_MILLIMETERS
-// #define UNITS_HOURLY_PRECIP_CENTIMETERS
-// #define UNITS_HOURLY_PRECIP_INCHES
-
-// UNITS - PRECIPITATION (DAILY)
-// Measure of precipitation.
-// This can either be Probability of Precipitation (PoP) or daily volume.
-//   Metric   : Millimeters
-//   Imperial : Inches
-// #define UNITS_DAILY_PRECIP_POP
-// #define UNITS_DAILY_PRECIP_MILLIMETERS
-// #define UNITS_DAILY_PRECIP_CENTIMETERS
-#define UNITS_DAILY_PRECIP_INCHES
-
 // WIND DIRECTION INDICATOR
 // Choose whether the wind direction indicator should be an arrow, number, or
 // expressed in Compass Point Notation (CPN).
@@ -145,7 +87,7 @@
 //  4   5
 //  6   7
 //  8   9
-// if DISP_BW_V1 is used, 6,7,8,9 are not available
+// if a 640 x 384 display is used, then positions 6,7,8,9 are not available
 #define POS_SUNRISE     0
 #define POS_SUNSET      1
 #define POS_WIND        2
@@ -229,16 +171,6 @@
 //   cardinal rotations
 #define DISPLAY_ROTATION   1
 
-
-// ALERTS
-//   The handling of alerts is complex. Each country has a unique national alert
-//   system that receives alerts from many different government agencies. This
-//   results is huge variance in the formatting of alerts. OpenWeatherMap
-//   provides alerts in English only. Any combination of these factors may make
-//   it undesirable to display alerts in some regions.
-//   Disable alerts by changing the DISPLAY_ALERTS macro to 0.
-#define DISPLAY_ALERTS 1
-
 // STATUS BAR EXTRAS
 //   Extra information that can be displayed on the status bar. Set to 1 to
 //   enable.
@@ -288,48 +220,9 @@
 #if !(defined(LOCALE))
   #error Invalid configuration. Locale not selected.
 #endif
-#if !(  defined(UNITS_TEMP_KELVIN)      \
-      ^ defined(UNITS_TEMP_CELSIUS)     \
-      ^ defined(UNITS_TEMP_FAHRENHEIT))
-  #error Invalid configuration. Exactly one temperature unit must be selected.
-#endif
-#if !(  defined(UNITS_SPEED_METERSPERSECOND)   \
-      ^ defined(UNITS_SPEED_FEETPERSECOND)     \
-      ^ defined(UNITS_SPEED_KILOMETERSPERHOUR) \
-      ^ defined(UNITS_SPEED_MILESPERHOUR)      \
-      ^ defined(UNITS_SPEED_KNOTS)             \
-      ^ defined(UNITS_SPEED_BEAUFORT))
-  #error Invalid configuration. Exactly one wind speed unit must be selected.
-#endif
-#if !(  defined(UNITS_PRES_HECTOPASCALS)             \
-      ^ defined(UNITS_PRES_PASCALS)                  \
-      ^ defined(UNITS_PRES_MILLIMETERSOFMERCURY)     \
-      ^ defined(UNITS_PRES_INCHESOFMERCURY)          \
-      ^ defined(UNITS_PRES_MILLIBARS)                \
-      ^ defined(UNITS_PRES_ATMOSPHERES)              \
-      ^ defined(UNITS_PRES_GRAMSPERSQUARECENTIMETER) \
-      ^ defined(UNITS_PRES_POUNDSPERSQUAREINCH))
-  #error Invalid configuration. Exactly one pressure unit must be selected.
-#endif
-#if !(  defined(UNITS_DIST_KILOMETERS) \
-      ^ defined(UNITS_DIST_MILES))
-  #error Invalid configuration. Exactly one distance unit must be selected.
-#endif
-#if !(  defined(UNITS_HOURLY_PRECIP_POP)         \
-      ^ defined(UNITS_HOURLY_PRECIP_MILLIMETERS) \
-      ^ defined(UNITS_HOURLY_PRECIP_CENTIMETERS) \
-      ^ defined(UNITS_HOURLY_PRECIP_INCHES))
-  #error Invalid configuration. Exactly one houly precipitation measurement must be selected.
-#endif
 #if !(  defined(TEMP_ORDER_HL)      \
       ^ defined(TEMP_ORDER_LH))
   #error Invalid configuration. Exactly one temperature order must be selected.
-#endif
-#if !(  defined(UNITS_DAILY_PRECIP_POP)         \
-      ^ defined(UNITS_DAILY_PRECIP_MILLIMETERS) \
-      ^ defined(UNITS_DAILY_PRECIP_CENTIMETERS) \
-      ^ defined(UNITS_DAILY_PRECIP_INCHES))
-  #error Invalid configuration. Exactly one daily precipitation measurement must be selected.
 #endif
 #if !(  defined(WIND_INDICATOR_ARROW)                         \
       || (                                                    \
@@ -358,9 +251,6 @@
 #endif
 #if !(defined(DISPLAY_HOURLY_ICONS))
   #error Invalid configuration. DISPLAY_HOURLY_ICONS not defined.
-#endif
-#if !(defined(DISPLAY_ALERTS))
-  #error Invalid configuration. DISPLAY_ALERTS not defined.
 #endif
 #if !(defined(BATTERY_MONITORING))
   #error Invalid configuration. BATTERY_MONITORING not defined.

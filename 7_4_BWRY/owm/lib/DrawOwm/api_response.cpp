@@ -21,7 +21,8 @@
 #include "api_response.h"
 
 DeserializationError deserializeOneCall(const char *json,
-                                        owm_resp_onecall_t &r)
+                                        owm_resp_onecall_t &r,
+                                        bool bDisplayAlers)
 {
   int i;
 
@@ -30,21 +31,23 @@ DeserializationError deserializeOneCall(const char *json,
   filter["minutely"] = false;
   filter["hourly"]   = true;
   filter["daily"]    = true;
-#if !DISPLAY_ALERTS
-  filter["alerts"]   = false;
-#else
-  // description can be very long so they are filtered out to save on memory
-  // along with sender_name
-  for (int i = 0; i < OWM_NUM_ALERTS; ++i)
+  if(!bDisplayAlers)
   {
-    filter["alerts"][i]["sender_name"] = false;
-    filter["alerts"][i]["event"]       = true;
-    filter["alerts"][i]["start"]       = true;
-    filter["alerts"][i]["end"]         = true;
-    filter["alerts"][i]["description"] = false;
-    filter["alerts"][i]["tags"]        = true;
+     filter["alerts"]   = false;
   }
-#endif
+  else {
+    // description can be very long so they are filtered out to save on memory
+    // along with sender_name
+    for (int i = 0; i < OWM_NUM_ALERTS; ++i)
+    {
+      filter["alerts"][i]["sender_name"] = false;
+      filter["alerts"][i]["event"]       = true;
+      filter["alerts"][i]["start"]       = true;
+      filter["alerts"][i]["end"]         = true;
+      filter["alerts"][i]["description"] = false;
+      filter["alerts"][i]["tags"]        = true;
+    }
+  }
 
   JsonDocument doc;
 
@@ -180,26 +183,27 @@ DeserializationError deserializeOneCall(const char *json,
     ++i;
   }
 
-#if DISPLAY_ALERTS
-  i = 0;
-  for (JsonObject alerts : doc["alerts"].as<JsonArray>())
+  if(bDisplayAlers)
   {
-    owm_alerts_t new_alert = {};
-    // new_alert.sender_name = alerts["sender_name"].as<const char *>();
-    new_alert.event       = alerts["event"]      .as<const char *>();
-    new_alert.start       = alerts["start"]      .as<int64_t>();
-    new_alert.end         = alerts["end"]        .as<int64_t>();
-    // new_alert.description = alerts["description"].as<const char *>();
-    new_alert.tags        = alerts["tags"][0]    .as<const char *>();
-    r.alerts.push_back(new_alert);
+     i = 0;
+     for (JsonObject alerts : doc["alerts"].as<JsonArray>())
+     {
+       owm_alerts_t new_alert = {};
+       // new_alert.sender_name = alerts["sender_name"].as<const char *>();
+       new_alert.event       = alerts["event"]      .as<const char *>();
+       new_alert.start       = alerts["start"]      .as<int64_t>();
+       new_alert.end         = alerts["end"]        .as<int64_t>();
+       // new_alert.description = alerts["description"].as<const char *>();
+       new_alert.tags        = alerts["tags"][0]    .as<const char *>();
+       r.alerts.push_back(new_alert);
 
-    if (i == OWM_NUM_ALERTS - 1)
-    {
-      break;
-    }
-    ++i;
+       if (i == OWM_NUM_ALERTS - 1)
+       {
+         break;
+       }
+       ++i;
+     }
   }
-#endif
 
   return error;
 } // end deserializeOneCall

@@ -8,6 +8,12 @@
 #define DISP_WIDTH  800
 #define DISP_HEIGHT 480
 
+// for compatibility with Seeed_GFX
+#ifdef EPAPER_ENABLE
+   #define _THE_DISPLAY_CLASS EPaper
+#else
+   #define _THE_DISPLAY_CLASS TFT_eSprite
+#endif
 typedef enum alignment
 {
   LEFT,
@@ -15,12 +21,90 @@ typedef enum alignment
   CENTER
 } alignment_t;
 
+// UNITS - WIND SPEED
+//   Metric   : Kilometers per Hour
+//   Imperial : Miles per Hour
+typedef enum {
+   UNITS_SPEED_METERSPERSECOND,
+   UNITS_SPEED_FEETPERSECOND,
+   UNITS_SPEED_KILOMETERSPERHOUR,
+   UNITS_SPEED_MILESPERHOUR,
+   UNITS_SPEED_KNOTS,
+   UNITS_SPEED_BEAUFORT
+} ConfigWindSpeed_t;
+
+// UNITS - VISIBILITY DISTANCE
+//   Metric   : Kilometers
+//   Imperial : Miles
+typedef enum {
+   UNITS_DIST_MILES,
+   UNITS_DIST_KILOMETERS
+} ConfigDistance_t;
+
+// UNITS - PRECIPITATION (DAILY)
+// Measure of precipitation.
+// This can either be Probability of Precipitation (PoP) or daily volume.
+//   Metric   : Millimeters
+//   Imperial : Inches
+typedef enum {
+   UNITS_DAILY_PRECIP_POP,
+   UNITS_DAILY_PRECIP_MILLIMETERS,
+   UNITS_DAILY_PRECIP_CENTIMETERS,
+   UNITS_DAILY_PRECIP_INCHES
+} ConfigPrecip_t;
+
+// UNITS - PRECIPITATION (HOURLY)
+// Measure of precipitation.
+// This can either be Probability of Precipitation (PoP) or hourly volume.
+//   Metric   : Millimeters
+//   Imperial : Inches
+typedef enum {
+   UNITS_HOURLY_PRECIP_POP,
+   UNITS_HOURLY_PRECIP_MILLIMETERS,
+   UNITS_HOURLY_PRECIP_CENTIMETERS,
+   UNITS_HOURLY_PRECIP_INCHES
+} ConfigPrecipHr_t;
+
+// UNITS - PRESSURE
+//   Metric   : Millibars
+//   Imperial : Inches of Mercury
+typedef enum {
+   UNITS_PRES_HECTOPASCALS,
+   UNITS_PRES_PASCALS,
+   UNITS_PRES_MILLIMETERSOFMERCURY,
+   UNITS_PRES_INCHESOFMERCURY,
+   UNITS_PRES_MILLIBARS,
+   UNITS_PRES_ATMOSPHERES,
+   UNITS_PRES_GRAMSPERSQUARECENTIMETER,
+   UNITS_PRES_POUNDSPERSQUAREINCH
+} ConfigPressure_t;
+
+
 typedef struct {
    const char *City;
    const char *TimeFormat;
    const char *DateFormat;
    const char *ForecastApiResponse;
    const char *AirPollutionApiResponse;
+// bMetric false: Fahrenheit / MPH / inches
+// bMetric true: Celcius / Beaufort / millimeters
+   bool bHighRes;  // true for 800 x 640, false for 640 x 384 
+   bool bMetric;
+   ConfigWindSpeed_t WindSpeed;
+   ConfigDistance_t DistanceType;
+   ConfigPrecip_t PrecipType;
+   ConfigPrecipHr_t PrecipHrType;
+   ConfigPressure_t PressureType;
+
+// ALERTS
+//   The handling of alerts is complex. Each country has a unique national alert
+//   system that receives alerts from many different government agencies. This
+//   results is huge variance in the formatting of alerts. OpenWeatherMap
+//   provides alerts in English only. Any combination of these factors may make
+//   it undesirable to display alerts in some regions.
+//   Disable alerts by changing the DISPLAY_ALERTS macro to 0.
+   bool bDisplayAlerts;
+
    float inTemp;
    float inHumidity;
    uint16_t batteryVoltage;
@@ -29,11 +113,11 @@ typedef struct {
 
 class DrawOWM {
 public:
-   DrawOWM(EPaper &spr,OwmArgs &Args);
+   DrawOWM(_THE_DISPLAY_CLASS &spr,OwmArgs &Args);
    void DrawIt();
 
 private:
-      EPaper &display;
+      _THE_DISPLAY_CLASS &display;
       OwmArgs &config;
 
    // too large to allocate locally on stack
@@ -109,8 +193,12 @@ private:
       void getDateStr(String &s, tm *timeInfo);
       void getTextBounds(const String &str,int16_t x,int16_t y,int16_t *x1,
                          int16_t *y1,uint16_t *w,uint16_t *h);
+      int kelvin_to_plot_y(float kelvin, int tempBoundMin, float yPxPerUnit,
+                           int yBoundMin);
 
       owm_resp_onecall_t       owm_onecall;
       owm_resp_air_pollution_t owm_air_pollution;
 };
+
+#undef _THE_DISPLAY_CLASS
 #endif   // _DRAW_OWM_H_
