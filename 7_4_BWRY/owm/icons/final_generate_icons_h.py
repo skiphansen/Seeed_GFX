@@ -26,6 +26,7 @@ def generate_icons_h(directory):
     icons_h_content.append('#define __ICONS_H__')
     icons_h_content.append('')
     icons_h_content.append('#include <cstddef>')
+    icons_h_content.append('#include "icons/icons.inc"')
     icons_h_content.append('')
 
     sizes = []
@@ -37,7 +38,6 @@ def generate_icons_h(directory):
         size_path = os.path.join(directory, size_dir)
 
         if os.path.isdir(size_path):
-            print(f'size_path {size_path}')
             size = size_dir.split('x')[0]  # Assume format is SIZExSIZE (e.g., 16x16)
             sizes.append(int(size))
 
@@ -49,7 +49,6 @@ def generate_icons_h(directory):
 
         size = size_dir.split('x')[0]  # Assume format is SIZExSIZE (e.g., 16x16)
         icons = sorted(os.listdir(size_path))
-        print(f'icons in {size_path} : {icons}')
         for icon in icons:
             if icon.endswith(f"_{size}x{size}.h"):
                 full_name = icon.split(f".h")[0]
@@ -60,6 +59,8 @@ def generate_icons_h(directory):
                     icon_names.append(icon_name)
 
     sizes.sort()
+
+    f_inc = open('icons/icons.inc',"w")
 
     # make externs 
 
@@ -80,7 +81,12 @@ def generate_icons_h(directory):
         for size in sizes:
             test_name = f'{icon_name}_{size}x{size}'
             if test_name in full_names:
-                icons_h_content.append(f'    case {size}: return {icon_name}_{size}x{size};')
+                icons_h_content.append(f'    case {size}: return {test_name};')
+                test_path = f'icons/{size}x{size}/{test_name}.h'
+                with open(test_path, "r") as f_header:
+                    content = f_header.read()
+                    f_inc.write(content)
+
         icons_h_content.append('    default:')
         icons_h_content.append('      return nullptr;')
         icons_h_content.append('    }')
@@ -96,7 +102,8 @@ def generate_icons_h(directory):
     # Write the result to the icons.h file
     with open("icons/icons.h", "w") as f:
         f.write("\n".join(icons_h_content))
-    print("icons.h file has been generated!")
+    print("icons.h and icons.inc files have been generated")
+    f_inc.close()
 
 
 generate_icons_h('icons')
