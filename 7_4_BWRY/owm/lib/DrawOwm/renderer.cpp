@@ -23,6 +23,15 @@
 #include "display_utils.h"
 #include <DrawOWM.h>
 
+#define ENABLE_LOGGING  0
+#if ENABLE_LOGGING && __has_include("logging.h") 
+#include "logging.h"
+#else
+#define LOG(format, ...)
+#define ELOG(format, ...)
+#define LOG_RAW(format, ...)
+#endif
+
 
 // fonts
 #include FONT_HEADER
@@ -48,15 +57,37 @@ uint16_t DrawOWM::getStringHeight(const String &text)
   return display.fontHeight();
 }
 
+void DrawOWM::setCursor(int16_t x, int16_t y)
+{
+   display.setCursor(x + config.xOffset,y + config.yOffset);
+}
+
+int16_t DrawOWM::getCursorX(void)
+{
+   return display.getCursorX() - config.xOffset;
+}
+
+int16_t DrawOWM::getCursorY(void)
+{
+   return display.getCursorY() - config.yOffset;
+}
+
+void DrawOWM::drawLine(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t color)
+{
+   display.drawLine(x0 + config.xOffset,y0 + config.yOffset,x1 + config.xOffset,y1 + config.yOffset,color);
+}
+
+void DrawOWM::drawPixel(int32_t x, int32_t y, uint32_t color)
+{
+   display.drawPixel(x + config.xOffset,y + config.yOffset,color);
+}
+
 /* Draws a string with alignment
  */
 void DrawOWM::drawString(int16_t x, int16_t y, const String &text, alignment_t alignment,
                 uint16_t color)
 {
-  int16_t x1, y1;
-  uint16_t w, h;
-  display.setTextColor(color);
-  getTextBounds(text, x, y, &x1, &y1, &w, &h);
+  uint16_t w = display.textWidth(text);
   if (alignment == RIGHT)
   {
     x = x - w;
@@ -65,9 +96,19 @@ void DrawOWM::drawString(int16_t x, int16_t y, const String &text, alignment_t a
   {
     x = x - w / 2;
   }
-  display.setCursor(x, y);
+  setCursor(x, y);
+  display.setTextColor(color);
   display.print(text);
-  return;
+  x = getCursorX();
+  if(MaxX < x) {
+     MaxX = x;
+     LOG("New MaxX \"%s\" %d\n",text.c_str(),MaxX);
+  }
+  y += display.fontHeight();
+  if(MaxY < y) {
+     MaxY = y;
+     LOG("New MaxY \"%s\" %d\n",text.c_str(),MaxY);
+  }
 } // end drawString
 
 /* Draws a string that will flow into the next line when max_width is reached.
@@ -89,10 +130,7 @@ void DrawOWM::drawMultiLnString(int16_t x, int16_t y, const String &text,
   // print until we reach max_lines or no more text remains
   while (current_line < max_lines && !textRemaining.isEmpty())
   {
-    int16_t  x1, y1;
-    uint16_t w, h;
-
-    getTextBounds(textRemaining, 0, 0, &x1, &y1, &w, &h);
+    uint16_t w = display.textWidth(textRemaining);
 
     int endIndex = textRemaining.length();
     // check if remaining text is to wide, if it is then print what we can
@@ -145,13 +183,13 @@ void DrawOWM::drawMultiLnString(int16_t x, int16_t y, const String &text,
         if (current_line < max_lines - 1)
         {
           // this is not the last line
-          getTextBounds(subStr, 0, 0, &x1, &y1, &w, &h);
+          w = display.textWidth(subStr);
         }
         else
         {
           // this is the last line, we need to make sure there is space for
           // ellipsis
-          getTextBounds(subStr + "...", 0, 0, &x1, &y1, &w, &h);
+          w = display.textWidth(subStr + "...");
           if (w <= max_width)
           {
             // ellipsis fit, add them to subStr
@@ -201,23 +239,34 @@ void DrawOWM::drawCurrentSunrise(const owm_current_t &current)
   String dataStr, unitStr;
   int PosX = config.PosSunrise % 2;
   int PosY = static_cast<int>(config.PosSunrise / 2);
+  const unsigned char *IconBitmap = NULL;
+
     // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_sunrise_48x48, 48, 48, TFT_BLACK);
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_sunrise_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_sunrise_48x48;
+        break;
+  }
+
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,IconBitmap,
+                     WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_SUNRISE, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_SUNRISE, LEFT);
 
   // sunrise
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(ValueFont);
   char timeBuffer[12] = {}; // big enough to accommodate "hh:mm:ss am"
   time_t ts = current.sunrise;
   tm *timeInfo = localtime(&ts);
   _strftime(timeBuffer, sizeof(timeBuffer),config.TimeFormat, timeInfo);
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, timeBuffer, LEFT);
-
-  return;
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, timeBuffer, LEFT);
 }
 // end drawCurrentSunrise
 
@@ -227,21 +276,35 @@ void DrawOWM::drawCurrentWind(const owm_current_t &current)
   String dataStr, unitStr;
   int PosX = (config.PosWind % 2);
   int PosY = static_cast<int>(config.PosWind / 2);
+  const unsigned char *IconBitmap = NULL;
+
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_strong_wind_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_strong_wind_48x48;
+        break;
+  }
 
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_strong_wind_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap, WI_SZ, WI_SZ, TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_WIND, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_WIND, LEFT);
 
   // wind
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(ValueFont);
 #ifdef WIND_INDICATOR_ARROW
-  drawInvertedBitmap(48 + (162 * PosX), 204 + 24 / 2 + (48 + 8) * PosY,
-                             getWindBitmap24(current.wind_deg),
-                             24, 24, TFT_BLACK);
+  if(config.DisplayWidth >= 640) {
+     drawInvertedBitmap(WI_LOFF + (WI_COL * PosX),
+                        WI_Y0 + 24 / 2 + WI_DY * PosY,
+                        getWindBitmap24(current.wind_deg),24, 24, TFT_BLACK);
+  }
 #endif
    switch (config.WindSpeed) {
       case UNITS_SPEED_METERSPERSECOND:
@@ -275,18 +338,25 @@ void DrawOWM::drawCurrentWind(const owm_current_t &current)
    }
 
 #ifdef WIND_INDICATOR_ARROW
-  drawString( (48 + 24)+ (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
+   if(config.DisplayWidth >= 640) {
+      drawString((WI_LOFF + 24) + (WI_COL * PosX),
+                 WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
+   }
+   else  {
+      drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
+   }
 #else
-  drawString(48    + (162 * PosX) , 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
 #endif
-  display.setFreeFont(&FONT_8pt8b);
-  drawString(display.getCursorX(), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-             unitStr, LEFT);
+  const GFXfont *temp;
+  temp = config.DisplayWidth >= 640 ? &FONT_8pt8b : &FONT_5pt8b;
+  setFreeFont(temp);
+  drawString(getCursorX(),WI_Y0 + WI_DDY + WI_DY * PosY,unitStr,LEFT);
 
 #if defined(WIND_INDICATOR_NUMBER)
   dataStr = String(current.wind_deg) + "\260";
-  display.setFreeFont(&FONT_12pt8b);
-  drawString(display.getCursorX() + 6, 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
+  setFreeFont(&FONT_12pt8b);
+  drawString(getCursorX() + 6, 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
              dataStr, LEFT);
 #endif
 #if defined(WIND_INDICATOR_CPN_CARDINAL)                \
@@ -294,9 +364,11 @@ void DrawOWM::drawCurrentWind(const owm_current_t &current)
  || defined(WIND_INDICATOR_CPN_SECONDARY_INTERCARDINAL) \
  || defined(WIND_INDICATOR_CPN_TERTIARY_INTERCARDINAL)
   dataStr = getCompassPointNotation(current.wind_deg);
-  display.setFreeFont(&FONT_12pt8b);
-  drawString(display.getCursorX() + 6, 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-             dataStr, LEFT);
+  temp = config.DisplayWidth >= 640 ? &FONT_12pt8b: &FONT_6pt8b;
+  setFreeFont(temp);
+  int16_t x_offset = config.DisplayWidth >= 640 ? 6 : 3;
+  drawString(getCursorX() + x_offset,
+             WI_Y0 + WI_DDY + WI_DY * PosY,dataStr, LEFT);
 #endif
 
   return;
@@ -309,49 +381,61 @@ void DrawOWM::drawCurrentUVI(const owm_current_t &current)
   String dataStr, unitStr;
   int PosX = (config.PosUvi % 2);
   int PosY = static_cast<int>(config.PosUvi / 2);
+  const unsigned char *IconBitmap = NULL;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_day_sunny_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_day_sunny_48x48;
+        break;
+  }
 
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_day_sunny_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_UV_INDEX, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_UV_INDEX, LEFT);
 
   // spacing between end of index value and start of descriptor text
   const int sp = 8;
 
   // uv index
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(ValueFont);
   unsigned int uvi = static_cast<unsigned int>(
                                 std::max(std::round(current.uvi), 0.0f));
   dataStr = String(uvi);
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
-  display.setFreeFont(&FONT_7pt8b);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
+  setFreeFont(&FONT_7pt8b);
   dataStr = String(getUVIdesc(uvi));
-  int max_w = (162 + (PosX * 162) - sp) - (display.getCursorX() + sp);
+  int max_w = (162 + (PosX * 162) - sp) - (getCursorX() + sp);
   if (getStringWidth(dataStr) <= max_w)
   { // Fits on a single line, draw along bottom
-    drawString(display.getCursorX() + sp, 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-               dataStr, LEFT);
+     drawString(getCursorX() + sp, WI_Y0 + WI_DDY + WI_DY * PosY,
+                dataStr, LEFT);
   }
   else
   { // use smaller font
-    display.setFreeFont(&FONT_5pt8b);
+    setFreeFont(&FONT_5pt8b);
     if (getStringWidth(dataStr) <= max_w)
     { // Fits on a single line with smaller font, draw along bottom
-      drawString(display.getCursorX() + sp,
-                 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-                 dataStr, LEFT);
+       drawString(getCursorX() + sp,
+                  WI_Y0 + WI_DDY + WI_DY * PosY,
+                  dataStr, LEFT);
     }
     else
     { // Does not fit on a single line, draw higher to allow room for 2nd line
-      drawMultiLnString(display.getCursorX() + sp,
-                        204 + 17 / 2 + (48 + 8) * PosY + 48 / 2 - 10,
-                        dataStr, LEFT, max_w, 2, 10);
+       drawMultiLnString(getCursorX() + sp,
+                         WI_Y0 + WI_DDY + WI_DY * PosY - 10,
+                         dataStr, LEFT, max_w, 2, 10);
     }
   }
-  return;
 }
 // end drawCurrentUVI
 
@@ -361,13 +445,27 @@ void DrawOWM::drawCurrentAirQuality(const owm_resp_air_pollution_t &owm_air_poll
   String dataStr, unitStr;
   int PosX = (config.PosAirQuality % 2);
   int PosY = static_cast<int>(config.PosAirQuality / 2);
+  const unsigned char *IconBitmap = NULL;
+  const GFXfont *TempFont;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = air_filter_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = air_filter_48x48;
+        break;
+  }
 
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             air_filter_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
+  setFreeFont(LabelFont);
 
   const char *air_quality_index_label;
   if (aqi_desc_type(AQI_SCALE) == AIR_QUALITY_DESC)
@@ -378,13 +476,12 @@ void DrawOWM::drawCurrentAirQuality(const owm_resp_air_pollution_t &owm_air_poll
   {
     air_quality_index_label = TXT_AIR_POLLUTION;
   }
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, air_quality_index_label, LEFT);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, air_quality_index_label, LEFT);
 
   // spacing between end of index value and start of descriptor text
   const int sp = 8;
 
   // air quality index
-  display.setFreeFont(&FONT_12pt8b);
   const owm_components_t &c = owm_air_pollution.components;
   // OpenWeatherMap does not provide pb (lead) conentrations, so we pass NULL.
   int aqi = calc_aqi(AQI_SCALE, c.co, c.nh3, c.no, c.no2, c.o3, NULL, c.so2,
@@ -398,33 +495,34 @@ void DrawOWM::drawCurrentAirQuality(const owm_resp_air_pollution_t &owm_air_poll
   {
     dataStr = String(aqi);
   }
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
-  display.setFreeFont(&FONT_7pt8b);
+  setFreeFont(ValueFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
+
+  TempFont = config.DisplayWidth >= 640 ? &FONT_7pt8b: &FONT_5pt8b;
+  setFreeFont(TempFont);
   dataStr = String(aqi_desc(AQI_SCALE, aqi));
-  int max_w = (162 + (PosX * 162) - sp) - (display.getCursorX() + sp);
+  int max_w = (162 + (PosX * 162) - sp) - (getCursorX() + sp);
   if (getStringWidth(dataStr) <= max_w)
   { // Fits on a single line, draw along bottom
-    drawString(display.getCursorX() + sp, 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-               dataStr, LEFT);
+     drawString(getCursorX() + sp, WI_Y0 + WI_DDY + WI_DY * PosY,
+                dataStr, LEFT);
   }
   else
   { // use smaller font
-    display.setFreeFont(&FONT_5pt8b);
+    setFreeFont(&FONT_5pt8b);
     if (getStringWidth(dataStr) <= max_w)
     { // Fits on a single line with smaller font, draw along bottom
-      drawString(display.getCursorX() + sp,
-                 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-                 dataStr, LEFT);
+       drawString(getCursorX() + sp,
+                  WI_Y0 + WI_DDY + WI_DY * PosY,
+                  dataStr, LEFT);
     }
     else
     { // Does not fit on a single line, draw higher to allow room for 2nd line
-      drawMultiLnString(display.getCursorX() + sp,
-                        204 + 17 / 2 + (48 + 8) * PosY + 48 / 2 - 10,
-                        dataStr, LEFT, max_w, 2, 10);
+       drawMultiLnString(getCursorX() + sp,
+                         WI_Y0 + WI_DDY + WI_DY * PosY - 10,
+                         dataStr, LEFT, max_w, 2, 10);
     }
   }
-
-  return;
 }
 // end drawCurrentAirQuality
 
@@ -434,17 +532,31 @@ void DrawOWM::drawCurrentInTemp(float inTemp)
   String dataStr, unitStr;
   int PosX = (config.PosIntemp % 2);
   int PosY = static_cast<int>(config.PosIntemp / 2);
+  const unsigned char *IconBitmap = NULL;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = house_thermometer_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = house_thermometer_48x48;
+        break;
+  }
 
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             house_thermometer_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_INDOOR_TEMPERATURE, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX),WI_Y0 + WI_LDY + WI_DY * PosY,
+             TXT_INDOOR_TEMPERATURE,LEFT);
 
   // indoor temperature
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(ValueFont);
   if (!std::isnan(inTemp))
   {
     if(config.bMetric) {
@@ -460,8 +572,7 @@ void DrawOWM::drawCurrentInTemp(float inTemp)
     dataStr = "--";
   }
   dataStr += "\260";
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
-  return;
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
 }
 // end drawCurrentInTemp
 
@@ -471,23 +582,33 @@ void DrawOWM::drawCurrentSunset(const owm_current_t &current)
   String dataStr, unitStr;
   int PosX = (config.PosSunset % 2);
   int PosY = static_cast<int>(config.PosSunset / 2);
+  const unsigned char *IconBitmap = NULL;
+
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_sunset_48x48, 48, 48, TFT_BLACK);
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_sunset_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_sunset_48x48;
+        break;
+  }
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,IconBitmap,
+                     WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_SUNSET, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_SUNSET, LEFT);
 
   // sunset
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(ValueFont);
   char timeBuffer[12] = {}; // big enough to accommodate "hh:mm:ss am"
   time_t ts = current.sunset;
   tm *timeInfo = localtime(&ts);
   _strftime(timeBuffer, sizeof(timeBuffer),config.TimeFormat, timeInfo);
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, timeBuffer, LEFT);
-
-  return;
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, timeBuffer, LEFT);
 }
 // end drawCurrentSunset
 
@@ -497,23 +618,37 @@ void DrawOWM::drawCurrentHumidity(const owm_current_t &current)
   String dataStr, unitStr;
   int PosX = (config.PosHumidity % 2);
   int PosY = static_cast<int>(config.PosHumidity / 2);
+  const unsigned char *IconBitmap = NULL;
+  const GFXfont *TempFont;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_humidity_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_humidity_48x48;
+        break;
+  }
 
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_humidity_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_HUMIDITY, LEFT);
+  TempFont = config.DisplayWidth >= 640 ? &FONT_7pt8b : &FONT_6pt8b;
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_HUMIDITY, LEFT);
 
   // humidity
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(ValueFont);
   dataStr = String(current.humidity);
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
-  display.setFreeFont(&FONT_8pt8b);
-  drawString(display.getCursorX(), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-             "%", LEFT);
-  return;
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
+  TempFont = config.DisplayWidth >= 640 ? &FONT_8pt8b : &FONT_5pt8b;
+  setFreeFont(TempFont);
+  drawString(getCursorX(), WI_Y0 + WI_DDY + WI_DY * PosY, "%", LEFT);
 }
 // end drawCurrentHumidity
 
@@ -523,13 +658,27 @@ void DrawOWM::drawCurrentPressure(const owm_current_t &current)
   String dataStr, unitStr;
   int PosX = (config.PosPressure % 2);
   int PosY = static_cast<int>(config.PosPressure / 2);
+  const GFXfont *TempFont;
+  const unsigned char *IconBitmap = NULL;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_barometer_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_barometer_48x48;
+        break;
+  }
   //  icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_barometer_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   //  labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_PRESSURE, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_PRESSURE, LEFT);
 
   // pressure
   switch(config.PressureType) {
@@ -584,13 +733,12 @@ void DrawOWM::drawCurrentPressure(const owm_current_t &current)
         unitStr = String(" ") + TXT_UNITS_PRES_POUNDSPERSQUAREINCH;
         break;
   }
-  display.setFreeFont(&FONT_12pt8b);
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
-  display.setFreeFont(&FONT_8pt8b);
-  drawString(display.getCursorX(), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-             unitStr, LEFT);
 
-  return;
+  setFreeFont(ValueFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
+  TempFont = config.DisplayWidth >= 640 ? &FONT_8pt8b: &FONT_5pt8b;
+  setFreeFont(TempFont);
+  drawString(getCursorX(), WI_Y0 + WI_DDY + WI_DY * PosY,unitStr, LEFT);
 }
 // end drawCurrentPressure
 
@@ -600,17 +748,31 @@ void DrawOWM::drawCurrentVisibility(const owm_current_t &current)
   String dataStr, unitStr;
   int PosX = (config.PosVisibility % 2);
   int PosY = static_cast<int>(config.PosVisibility / 2);
+  const unsigned char *IconBitmap = NULL;
+  const GFXfont *TempFont;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = visibility_icon_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = visibility_icon_48x48;
+        break;
+  }
 
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             visibility_icon_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_VISIBILITY, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_VISIBILITY, LEFT);
 
   // visibility
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(ValueFont);
 
   float vis;
   if(config.DistanceType == UNITS_DIST_KILOMETERS) {
@@ -637,12 +799,10 @@ void DrawOWM::drawCurrentVisibility(const owm_current_t &current)
   {
     dataStr = "> " + dataStr;
   }
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
-  display.setFreeFont(&FONT_8pt8b);
-  drawString(display.getCursorX(), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-             unitStr, LEFT);
-
-  return;
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
+  TempFont = config.DisplayWidth >= 640 ? &FONT_8pt8b : &FONT_5pt8b;
+  setFreeFont(TempFont);
+  drawString(getCursorX(), WI_Y0 + WI_DDY + WI_DY * PosY,unitStr, LEFT);
 }
 // end drawCurrentVisibility
 
@@ -652,17 +812,30 @@ void DrawOWM::drawCurrentInHumidity(float inHumidity)
   String dataStr, unitStr;
   int PosX = (config.PosInhumidity % 2);
   int PosY = static_cast<int>(config.PosInhumidity / 2);
+  const unsigned char *IconBitmap = NULL;
+  const GFXfont *TempFont;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = house_humidity_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = house_humidity_48x48;
+        break;
+  }
 
   // current weather data icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             house_humidity_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   // current weather data labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_INDOOR_HUMIDITY, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_INDOOR_HUMIDITY, LEFT);
 
   // indoor humidity
-  display.setFreeFont(&FONT_12pt8b);
   if (!std::isnan(inHumidity))
   {
     dataStr = String(static_cast<int>(std::round(inHumidity)));
@@ -671,11 +844,12 @@ void DrawOWM::drawCurrentInHumidity(float inHumidity)
   {
     dataStr = "--";
   }
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
-  display.setFreeFont(&FONT_8pt8b);
-  drawString(display.getCursorX(), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-             "%", LEFT);
-  return;
+  setFreeFont(ValueFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
+
+  TempFont = config.DisplayWidth >= 640 ? &FONT_8pt8b: &FONT_5pt8b;
+  setFreeFont(TempFont);
+  drawString(getCursorX(), WI_Y0 + WI_DDY + WI_DY * PosY, "%", LEFT);
 }
 // end drawCurrentInHumidity
 
@@ -685,24 +859,35 @@ void DrawOWM::drawCurrentMoonrise(const owm_daily_t &today)
   String dataStr, unitStr;
   int PosX = config.PosMoonrise % 2;
   int PosY = static_cast<int>(config.PosMoonrise / 2);
+  const unsigned char *IconBitmap = NULL;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_moonrise_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_moonrise_48x48;
+        break;
+  }
 
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_moonrise_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_MOONRISE, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_MOONRISE, LEFT);
 
   // moonrise
-  display.setFreeFont(&FONT_12pt8b);
   char timeBuffer[12] = {}; // big enough to accommodate "hh:mm:ss am"
   time_t ts = today.moonrise;
   tm *timeInfo = localtime(&ts);
   _strftime(timeBuffer, sizeof(timeBuffer), TIME_FORMAT, timeInfo);
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, timeBuffer, LEFT);
-
-  return;
+  setFreeFont(ValueFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, timeBuffer, LEFT);
 }
 // end drawCurrentMoonrise
 
@@ -712,23 +897,34 @@ void DrawOWM::drawCurrentMoonset(const owm_daily_t &today)
   String dataStr, unitStr;
   int PosX = (config.PosMoonset % 2);
   int PosY = static_cast<int>(config.PosMoonset / 2);
+  const unsigned char *IconBitmap = NULL;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_moonset_24x24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_moonset_48x48;
+        break;
+  }
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_moonset_48x48, 48, 48, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                      IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
 
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_MOONSET, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_MOONSET, LEFT);
 
   // moonset
-  display.setFreeFont(&FONT_12pt8b);
   char timeBuffer[12] = {}; // big enough to accommodate "hh:mm:ss am"
   time_t ts = today.moonset;
   tm *timeInfo = localtime(&ts);
   _strftime(timeBuffer, sizeof(timeBuffer), TIME_FORMAT, timeInfo);
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, timeBuffer, LEFT);
-
-  return;
+  setFreeFont(ValueFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, timeBuffer, LEFT);
 }
 // end drawCurrentMoonset
 
@@ -738,42 +934,55 @@ void DrawOWM::drawCurrentMoonphase(const owm_daily_t &daily)
   String dataStr, unitStr;
   int PosX = (config.PosMoonphase % 2);
   int PosY = static_cast<int>(config.PosMoonphase / 2);
+  const unsigned char *IconBitmap = NULL;
+  const GFXfont *TempFont;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = getMoonPhaseBitmap24(daily);
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = getMoonPhaseBitmap48(daily);
+        break;
+  }
 
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             getMoonPhaseBitmap48(daily), 48, 48, TFT_BLACK);
-
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_MOONPHASE, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_MOONPHASE, LEFT);
 
   // moonphase
   const int sp = 8;
   dataStr = String(getMoonPhaseStr(daily));
   int max_w = (162 + (PosX * 162) - sp) - (48 + (PosX * 162));
+  TempFont = config.DisplayWidth >= 640 ? &FONT_7pt8b: &FONT_5pt8b;
+  setFreeFont(TempFont);
   if (getStringWidth(dataStr) <= max_w)
   { // Fits on a single line, draw along bottom
-    drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-               dataStr, LEFT);
+     drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY,
+                dataStr, LEFT);
   }
   else
   { // use smaller font
-    display.setFreeFont(&FONT_5pt8b);
+    setFreeFont(&FONT_5pt8b);
     if (getStringWidth(dataStr) <= max_w)
     { // Fits on a single line with smaller font, draw along bottom
-      drawString(48 + (162 * PosX),
-                 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2,
-                 dataStr, LEFT);
+       drawString(WI_LOFF + (WI_COL * PosX),
+                  WI_Y0 + WI_DDY + WI_DY * PosY,
+                  dataStr, LEFT);
     }
     else
     { // Does not fit on a single line, draw higher to allow room for 2nd line
-      drawMultiLnString(48 + (162 * PosX),
-                        204 + 17 / 2 + (48 + 8) * PosY + 48 / 2 - 10,
-                        dataStr, LEFT, max_w, 2, 10);
+       drawMultiLnString(WI_LOFF + (WI_COL * PosX),
+                         WI_Y0 + WI_DDY + WI_DY * PosY - 10,
+                         dataStr, LEFT, max_w, 2, 10);
     }
   }
-
-  return;
 }
 // end drawCurrentMoonphase
 
@@ -783,19 +992,40 @@ void DrawOWM::drawCurrentDewpoint(const owm_current_t &current)
   String dataStr, unitStr;
   int PosX = (config.PosDewpoint % 2);
   int PosY = static_cast<int>(config.PosDewpoint / 2);
+  const unsigned char *IconBitmap = NULL;
+  const unsigned char *IconBitmap1 = NULL;
+  uint16_t WI_SZ1 = 0;
+
+    // icons
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_thermometer_24x24;
+        IconBitmap1 = wi_raindrops_16x16;
+        WI_SZ1 = 16;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_thermometer_48x48;
+        IconBitmap1 = wi_raindrops_24x24;
+        WI_SZ1 = 24;
+        break;
+  }
+
+  // icons
+  drawInvertedBitmap(WI_COL * PosX, WI_Y0 + WI_DY * PosY,
+                     IconBitmap,WI_SZ,WI_SZ,TFT_BLACK);
   
   // icons
-  drawInvertedBitmap(162 * PosX, 204 + (48 + 8) * PosY,
-                             wi_thermometer_48x48, 48, 48, TFT_BLACK);
-  drawInvertedBitmap(162 * PosX + 48 - 24, 204 + (48 + 8) * PosY + 4,
-                             wi_raindrops_24x24, 24, 24, TFT_BLACK);
+  drawInvertedBitmap(WI_COL * PosX + 24 - 12, WI_Y0 + WI_DY * PosY + 4,
+                     IconBitmap1,WI_SZ1,WI_SZ1,TFT_BLACK);
   
   // labels
-  display.setFreeFont(&FONT_7pt8b);
-  drawString(48 + (162 * PosX), 204 + 10 + (48 + 8) * PosY, TXT_DEWPOINT, LEFT);
+  setFreeFont(LabelFont);
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_DEWPOINT, LEFT);
 
   // Dew point
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(ValueFont);
   if (!std::isnan(current.dew_point))
   {
      if(config.bMetric) {
@@ -811,12 +1041,46 @@ void DrawOWM::drawCurrentDewpoint(const owm_current_t &current)
     dataStr = "--";
   }
   dataStr += "\260";
-  drawString(48 + (162 * PosX), 204 + 17 / 2 + (48 + 8) * PosY + 48 / 2, dataStr, LEFT);
-  return;
+  drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
 } 
 // end drawCurrentDewpoint
 
 //End defining functions for left panel.
+
+void DrawOWM::drawInit()
+{
+   MaxX = 65535;
+   MaxY = 65535;
+
+   switch (config.DisplayFormat) {
+      case FORMAT_400X300:
+         LabelFont = &FONT_6pt8b;
+         ValueFont = &FONT_7pt8b;
+         UnitFont = &FONT_7pt8b;
+         WI_COL  = 85;   // column width (px)
+         WI_Y0   = 104;  // first-row base y
+         WI_DY   = 40;   // row stride (icon 24 + gap 10)
+         WI_SZ   = 24;   // icon size
+         WI_LOFF = 24;   // label/data x offset from col start
+         WI_LDY  = 5;    // label baseline delta from row base
+         WI_DDY  = 17;   // data baseline delta from row base (5 + 24/2)
+         break;
+
+      case FORMAT_640X384:
+      case FORMAT_800X480:
+         LabelFont = &FONT_7pt8b;
+         ValueFont = &FONT_12pt8b;
+         UnitFont = &FONT_14pt8b;
+         WI_COL  = 162;  // column width (px)
+         WI_Y0   = 204;  // first-row base y
+         WI_DY   = 56;   // row stride (icon 48 + gap 8)
+         WI_SZ   = 48;   // icon size
+         WI_LOFF = 48;   // label/data x offset from col start
+         WI_LDY  = 10;   // label baseline delta from row base
+         WI_DDY  = 32;   // data baseline delta from row base (8 + 48/2)
+         break;
+   }
+}
 
 /* This function is responsible for drawing the current conditions and
  * associated icons.
@@ -826,218 +1090,308 @@ void DrawOWM::drawCurrentConditions(const owm_current_t &current,
                            const owm_resp_air_pollution_t &owm_air_pollution,
                            float inTemp, float inHumidity)
 {
-  String dataStr, unitStr;
-  // current weather icon
-  drawInvertedBitmap(0, 0,
-                             getCurrentConditionsBitmap196(current, today),
-                             196, 196, TFT_BLACK);
+   String dataStr, unitStr;
+   // current weather icon
+   const GFXfont *TemperatureFont = NULL;
+   const uint8_t *IconBitmap = NULL;
+   uint16_t TempX = 0;
+   uint16_t TempY = 0;
+   uint16_t FeelsLikeX = 0;
+   uint16_t FeelsLikeY = 0;
+   uint16_t UnitY = 0;
+   uint16_t LargeIconSize = 0;
+   float CurrentTemp;
+   float FeelsLike;
 
-  // current temp
-  if(config.bMetric) {
-     dataStr = String(static_cast<int>(
-               std::round(kelvin_to_celsius(current.temp))));
-     unitStr = TXT_UNITS_TEMP_CELSIUS;
-  }
-  else {
-     dataStr = String(static_cast<int>(
-               std::round(kelvin_to_fahrenheit(current.temp))));
-     unitStr = TXT_UNITS_TEMP_FAHRENHEIT;
-  }
-  // FONT_**_temperature fonts only have the character set used for displaying
-  // temperature (0123456789.-\260)
-  display.setFreeFont(&FONT_48pt8b_temperature);
-  if(config.bHighRes) {
-    drawString(196 + 164 / 2 - 20, 196 / 2 + 69 / 2, dataStr, CENTER);
-  }
-  else {
-    drawString(156 + 164 / 2 - 20, 196 / 2 + 69 / 2, dataStr, CENTER);
-  }
-  display.setFreeFont(&FONT_14pt8b);
-  drawString(display.getCursorX(), 196 / 2 - 69 / 2 + 20, unitStr, LEFT);
+   LOG("\n");
+   switch (config.DisplayFormat) {
+      case FORMAT_400X300:
+         LargeIconSize = 96;
+         TemperatureFont = &FONT_18pt8b;
+         IconBitmap = getCurrentConditionsBitmap96(current, today);
+         TempX = 96 + 30 - 10;
+         TempY = 96 / 2 + 25 / 2;
+         UnitY = 96 / 2 - 69 / 2 + 20;
+         FeelsLikeX = 96 + 60 / 2;
+         FeelsLikeY = 96 / 2 + 25 / 2 + 12 / 2 + 17 / 2;
+         break;
 
-  // current feels like
-  if(config.bMetric) {
-     dataStr = String(TXT_FEELS_LIKE) + ' '
-               + String(static_cast<int>(std::round(
-                        kelvin_to_celsius(current.feels_like))))
-               + '\260';
-  }
-  else {
-     dataStr = String(TXT_FEELS_LIKE) + ' '
-               + String(static_cast<int>(std::round(
-                        kelvin_to_fahrenheit(current.feels_like))))
-               + '\260';
-  }
-  display.setFreeFont(&FONT_12pt8b);
-  if(config.bHighRes) {
-    drawString(196 + 164 / 2, 98 + 69 / 2 + 12 + 17, dataStr, CENTER);
-  }
-  else {
-    drawString(156 + 164 / 2, 98 + 69 / 2 + 12 + 17, dataStr, CENTER);
-  }
-  // line dividing top and bottom display areas
-  // display.drawLine(0, 196, config.DisplayWidth - 1, 196, TFT_BLACK);
+      case FORMAT_640X384:
+      case FORMAT_800X480:
+         LargeIconSize = 196;
+         TemperatureFont = &FONT_48pt8b_temperature;
+         IconBitmap = getCurrentConditionsBitmap196(current, today);
+         if(config.DisplayFormat == FORMAT_640X384) {
+            TempX = 156 + 164 / 2 - 20;
+            FeelsLikeX = 156 + 164 / 2 - 20;
+         }
+         else {
+            TempX = 196 + 164 / 2 - 20;
+            FeelsLikeX = 196 + 164 / 2;
+         }
+         TempY = 196 / 2 + 69 / 2;
+         UnitY = 196 / 2 - 69 / 2 + 20;
+         FeelsLikeY = 98 + 69 / 2 + 12 + 17;
+         break;
+   }
 
-  // draw current data of the left panel
+   drawInvertedBitmap(0, 0,IconBitmap,LargeIconSize,LargeIconSize,TFT_BLACK);
 
-    if(config.PosSunrise >= 0) {
-     drawCurrentSunrise(current);
-    }
+   // current temp
+   if (config.bMetric) {
+      CurrentTemp = kelvin_to_celsius(current.temp);
+      FeelsLike = kelvin_to_celsius(current.feels_like);
+      unitStr = TXT_UNITS_TEMP_CELSIUS;
+   }
+   else {
+      CurrentTemp = kelvin_to_fahrenheit(current.temp);
+      FeelsLike = kelvin_to_fahrenheit(current.feels_like);
+      unitStr = TXT_UNITS_TEMP_FAHRENHEIT;
+   }
+   dataStr = String(static_cast<int>(std::round(CurrentTemp)));
+   setFreeFont(TemperatureFont);
+   drawString(TempX,TempY,dataStr, CENTER);
+   setFreeFont(UnitFont);
+   drawString(getCursorX(), UnitY, unitStr, LEFT);
+   // current feels like
+   dataStr = String(TXT_FEELS_LIKE) + ' '
+             + String(static_cast<int>(std::round(FeelsLike)))
+             + '\260';
+   setFreeFont(ValueFont);
+   drawString(FeelsLikeX,FeelsLikeY, dataStr, CENTER);
 
-    if(config.PosSunset>= 0) {
+   // line dividing top and bottom display areas
+   // display.drawLine(0, 196, config.DisplayWidth - 1, 196, TFT_BLACK);
+
+   // draw current data of the left panel
+   if (config.PosSunrise >= 0) {
+      LOG("Calling drawCurrentSunrise\n");
+      drawCurrentSunrise(current);
+   }
+
+   if (config.PosSunset>= 0) {
+      LOG("Calling drawCurrentSunset\n");
       drawCurrentSunset(current);
-    }
+   }
 
-    if(config.PosWind>= 0) {
+   if (config.PosWind>= 0) {
+      LOG("Calling drawCurrentWind\n");
       drawCurrentWind(current);
-    }
+   }
 
-    if(config.PosHumidity>= 0) {
+   if (config.PosHumidity>= 0) {
+      LOG("Calling drawCurrentHumidity\n");
       drawCurrentHumidity(current);
-    }
+   }
 
-    if(config.PosUvi >= 0) {
+   if (config.PosUvi >= 0) {
+      LOG("Calling drawCurrentUVI\n");
       drawCurrentUVI(current);
-    }
+   }
 
-    if(config.PosPressure >= 0) {
+   if (config.PosPressure >= 0) {
+      LOG("Calling drawCurrentPressure\n");
       drawCurrentPressure(current);
-    }
+   }
 
-    if(config.PosVisibility >= 0) {
+   if (config.PosVisibility >= 0) {
+      LOG("Calling drawCurrentVisibility\n");
       drawCurrentVisibility(current);
-    }
+   }
 
-    if(config.PosAirQuality >= 0) {
+   if (config.PosAirQuality >= 0) {
+      LOG("Calling drawCurrentAirQuality\n");
       drawCurrentAirQuality(owm_air_pollution);
-    }
+   }
 
-    if(config.PosIntemp >= 0) {
+   if (config.PosIntemp >= 0) {
+      LOG("Calling drawCurrentInTemp\n");
       drawCurrentInTemp(inTemp);
-    }
+   }
 
-    if(config.PosInhumidity >= 0) {
+   if (config.PosInhumidity >= 0) {
+      LOG("Calling drawCurrentInHumidity\n");
       drawCurrentInHumidity(inHumidity);
-    }
+   }
 
-    if(config.PosMoonrise >= 0) {
-     drawCurrentMoonrise(today);
-    }
+   if (config.PosMoonrise >= 0) {
+      LOG("Calling drawCurrentMoonrise\n");
+      drawCurrentMoonrise(today);
+   }
 
-    if(config.PosMoonset >= 0) {
+   if (config.PosMoonset >= 0) {
+      LOG("Calling drawCurrentMoonset\n");
       drawCurrentMoonset(today);
-    }
+   }
 
-    if(config.PosMoonphase >= 0) {
+   if (config.PosMoonphase >= 0) {
+      LOG("Calling drawCurrentMoonphase\n");
       drawCurrentMoonphase(today);
-    }
-  
-    if(config.PosDewpoint >= 0) {
-      drawCurrentDewpoint(current);
-    }
-  
-    // end drawing left panel
+   }
 
-  return;
+   if (config.PosDewpoint >= 0) {
+      LOG("Calling drawCurrentDewpoint\n");
+      drawCurrentDewpoint(current);
+   }
+   // end drawing left panel
 } // end drawCurrentConditions
 
 /* This function is responsible for drawing the five day forecast.
  */
-void DrawOWM::drawForecast(const owm_daily_t *daily, tm timeInfo)
-{
-  // 5 day, forecast
-  String hiStr, loStr;
-  String dataStr, unitStr;
-  for (int i = 0; i < 5; ++i)
-  {
-    int x = config.bHighRes ? 398 + (i * 82) : 318 + (i * 64);
-    // icons
-    drawInvertedBitmap(x, 98 + 69 / 2 - 32 - 6,
-                               getDailyForecastBitmap64(daily[i]),
-                               64, 64, TFT_BLACK);
-    // day of week label
-    display.setFreeFont(&FONT_11pt8b);
-    char dayBuffer[8] = {};
-    _strftime(dayBuffer, sizeof(dayBuffer), "%a", &timeInfo); // abbrv'd day
-    drawString(x + 31 - 2, 98 + 69 / 2 - 32 - 26 - 6 + 16, dayBuffer, CENTER);
-    timeInfo.tm_wday = (timeInfo.tm_wday + 1) % 7; // increment to next day
-
-    // high | low
-    display.setFreeFont(&FONT_8pt8b);
-    drawString(x + 31, 98 + 69 / 2 + 38 - 6 + 12, "|", CENTER);
-    if(config.bMetric) {
-       hiStr = String(static_cast<int>(
-                   std::round(kelvin_to_celsius(daily[i].temp.max)))) +
-               "\260";
-       loStr = String(static_cast<int>(
-                   std::round(kelvin_to_celsius(daily[i].temp.min)))) +
-               "\260";
-    }
-    else {
-       hiStr = String(static_cast<int>(
-                   std::round(kelvin_to_fahrenheit(daily[i].temp.max)))) +
-               "\260";
-       loStr = String(static_cast<int>(
-                   std::round(kelvin_to_fahrenheit(daily[i].temp.min)))) +
-               "\260";
-    }
+void DrawOWM::drawForecast(const owm_daily_t *daily, tm timeInfo) {
+   // 5 day, forecast
+   String hiStr, loStr;
+   String dataStr, unitStr;
+   const unsigned char *IconBitmap = NULL;
+   uint16_t DailyWI_SZ = 0;
+   const GFXfont *TempFont;
 #ifdef TEMP_ORDER_HL
-    drawString(x + 31 - 4, 98 + 69 / 2 + 38 - 6 + 12, hiStr, RIGHT);
-    drawString(x + 31 + 5, 98 + 69 / 2 + 38 - 6 + 12, loStr, LEFT);
+   #define LeftStr  hiStr
+   #define RightStr loStr
+#else
+   #define LeftStr  loStr
+   #define RightStr hiStr
 #endif
-#ifdef TEMP_ORDER_LH
-    drawString(x + 31 - 4, 98 + 69 / 2 + 38 - 6 + 12, loStr, RIGHT);
-    drawString(x + 31 + 5, 98 + 69 / 2 + 38 - 6 + 12, hiStr, LEFT);
-#endif
+
+   LOG("\n");
+// icons
+   for (int i = 0; i < 5; ++i) {
+      int x = 0;
+      int y = 0;
+      switch (config.DisplayFormat) {
+         case FORMAT_400X300:
+            DailyWI_SZ = 32;
+            IconBitmap = getDailyForecastBitmap32(daily[i]);
+            x = 178 + (i * 44);
+            y = 49 + 69 / 4 - 32 / 2 - 6 / 2;
+            break;
+
+         case FORMAT_640X384:
+            DailyWI_SZ = 64;
+            IconBitmap = getDailyForecastBitmap64(daily[i]);
+            x = 318 + (i * 64);
+            y = 98 + 69 / 2 - 32 - 6;
+            break;
+
+         case FORMAT_800X480:
+            DailyWI_SZ = 64;
+            IconBitmap = getDailyForecastBitmap64(daily[i]);
+            x = 398 + (i * 82);
+            y = 98 + 69 / 2 - 32 - 6;
+            break;
+      }
+      // icons
+      drawInvertedBitmap(x,y,IconBitmap,DailyWI_SZ,DailyWI_SZ,TFT_BLACK);
+
+      // day of week label
+      char dayBuffer[8] = {};
+      _strftime(dayBuffer, sizeof(dayBuffer), "%a", &timeInfo); // abbrv'd day
+      if (config.DisplayFormat == FORMAT_400X300) {
+         setFreeFont(&FONT_6pt8b);
+         drawString(x + 15, 49 + 69 / 4 - 32 / 2 - 26 / 2 - 6 / 2 + 16 / 2,
+                    dayBuffer,CENTER);
+      }
+      else {
+         setFreeFont(&FONT_11pt8b);
+         drawString(x + 31 - 2, 98 + 69 / 2 - 32 - 26 - 6 + 16,dayBuffer,CENTER);
+      }
+      timeInfo.tm_wday = (timeInfo.tm_wday + 1) % 7; // increment to next day
+
+      // high | low
+      if (config.DisplayFormat == FORMAT_400X300) {
+         setFreeFont(&FONT_5pt8b);
+         drawString(x + 15, 49 + 69 / 4 + 38 / 2 - 6 / 2 + 12 / 2, "|", CENTER);
+      }
+      else {
+         setFreeFont(&FONT_8pt8b);
+         drawString(x + 31, 98 + 69 / 2 + 38 - 6 + 12, "|", CENTER);
+      }
+      if (config.bMetric) {
+         hiStr = String(static_cast<int>(
+                     std::round(kelvin_to_celsius(daily[i].temp.max)))) +
+                     "\260";
+         loStr = String(static_cast<int>(
+                     std::round(kelvin_to_celsius(daily[i].temp.min)))) +
+                     "\260";
+      }
+      else {
+         hiStr = String(static_cast<int>(
+                     std::round(kelvin_to_fahrenheit(daily[i].temp.max)))) +
+                     "\260";
+         loStr = String(static_cast<int>(
+                     std::round(kelvin_to_fahrenheit(daily[i].temp.min)))) +
+                     "\260";
+      }
+
+      uint16_t RightX;
+      uint16_t LeftX;
+      uint16_t LowHighY;
+      if (config.DisplayFormat == FORMAT_400X300) {
+         LeftX  = x + 15 - 3;
+         RightX = x + 15 + 3;
+         LowHighY = 49 + 69 / 4 + 38 / 2 - 6 / 2 + 12 / 2;
+      }
+      else {
+         LeftX  = x + 31 - 4;
+         RightX = x + 31 + 5;
+         LowHighY = 98 + 69 / 2 + 38 - 6 + 12;
+      }
+      drawString(RightX,LowHighY,RightStr,LEFT);
+      drawString(LeftX,LowHighY,LeftStr,RIGHT);
 
 // daily forecast precipitation
 #if DISPLAY_DAILY_PRECIP
-    float dailyPrecip = daily[i].snow + daily[i].rain;
-    switch(config.PrecipType ) {
-       case UNITS_DAILY_PRECIP_POP:
-          dailyPrecip = daily[i].pop * 100;
-          dataStr = String(static_cast<int>(dailyPrecip));
-          unitStr = "%";
-          break;
+      float dailyPrecip = daily[i].snow + daily[i].rain;
+      TempFont = config.DisplayWidth >= 640 ? &FONT_6pt8b : &FONT_5pt8b;
+      setFreeFont(TempFont);
+      switch (config.PrecipType) {
+      case UNITS_DAILY_PRECIP_POP:
+         dailyPrecip = daily[i].pop * 100;
+         dataStr = String(static_cast<int>(dailyPrecip));
+         unitStr = "%";
+         break;
 
-       case UNITS_DAILY_PRECIP_MILLIMETERS:
-          // Round up to nearest mm
-          dailyPrecip = std::round(dailyPrecip);
-          dataStr = String(static_cast<int>(dailyPrecip));
-          unitStr = String(" ") + TXT_UNITS_PRECIP_MILLIMETERS;
-          break;
+      case UNITS_DAILY_PRECIP_MILLIMETERS:
+      // Round up to nearest mm
+         dailyPrecip = std::round(dailyPrecip);
+         dataStr = String(static_cast<int>(dailyPrecip));
+         unitStr = String(" ") + TXT_UNITS_PRECIP_MILLIMETERS;
+         break;
 
-       case UNITS_DAILY_PRECIP_CENTIMETERS:
-       // Round up to nearest 0.1 cm
-          dailyPrecip = millimeters_to_centimeters(dailyPrecip);
-          dailyPrecip = std::round(dailyPrecip * 10) / 10.0f;
-          dataStr = String(dailyPrecip, 1);
-          unitStr = String(" ") + TXT_UNITS_PRECIP_CENTIMETERS;
-          break;
+      case UNITS_DAILY_PRECIP_CENTIMETERS:
+      // Round up to nearest 0.1 cm
+         dailyPrecip = millimeters_to_centimeters(dailyPrecip);
+         dailyPrecip = std::round(dailyPrecip * 10) / 10.0f;
+         dataStr = String(dailyPrecip, 1);
+         unitStr = String(" ") + TXT_UNITS_PRECIP_CENTIMETERS;
+         break;
 
-       case UNITS_DAILY_PRECIP_INCHES:
-          // Round up to nearest 0.1 inch
-          dailyPrecip = millimeters_to_inches(dailyPrecip);
-          dailyPrecip = std::round(dailyPrecip * 10) / 10.0f;
-          dataStr = String(dailyPrecip, 1);
-          unitStr = String(" ") + TXT_UNITS_PRECIP_INCHES;
-          break;
-    }
+      case UNITS_DAILY_PRECIP_INCHES:
+      // Round up to nearest 0.01 inch
+         dailyPrecip = millimeters_to_inches(dailyPrecip);
+         dailyPrecip = std::round(dailyPrecip * 100) / 100.0f;
+         dataStr = String(dailyPrecip, 2);
+         unitStr = String(" ") + TXT_UNITS_PRECIP_INCHES;
+         break;
+      }
 #if (DISPLAY_DAILY_PRECIP == 2) // smart
-      if (dailyPrecip > 0.0f)
-      {
+      if (dailyPrecip > 0.0f) {
 #endif
-        display.setFreeFont(&FONT_6pt8b);
-        drawString(x + 31, 98 + 69 / 2 + 38 - 6 + 26,
-                   dataStr + unitStr, CENTER);
+         if (config.DisplayFormat == FORMAT_400X300) {
+            String FullString = dataStr + unitStr;
+            uint16_t y = LowHighY + getTextHeight(FullString.c_str()) + 2;
+            drawString(x + 15,y,FullString,CENTER);
+         }
+         else {
+            drawString(x + 31, 98 + 69 / 2 + 38 - 6 + 26,
+                       dataStr + unitStr, CENTER);
+         }
 #if (DISPLAY_DAILY_PRECIP == 2) // smart
       }
 #endif
 #endif // DISPLAY_DAILY_PRECIP
-    }
-
-    return;
-  } // end drawForecast
+   }
+} // end drawForecast
 
 /* This function is responsible for drawing the current alerts if any.
 * Up to 2 alerts can be drawn.
@@ -1048,6 +1402,7 @@ void DrawOWM::drawAlerts(std::vector<owm_alerts_t> & alerts,
 #if DEBUG_LEVEL >= 1
   Serial.println("[debug] alerts.size()    : " + String(alerts.size()));
 #endif
+  LOG("\n");
   if (alerts.size() == 0)
   { // no alerts to draw
     return;
@@ -1069,9 +1424,9 @@ void DrawOWM::drawAlerts(std::vector<owm_alerts_t> & alerts,
 
   // limit alert text width so that is does not run into the location or date
   // strings
-  display.setFreeFont(&FONT_16pt8b);
+  setFreeFont(&FONT_16pt8b);
   int city_w = getStringWidth(city);
-  display.setFreeFont(&FONT_12pt8b);
+  setFreeFont(&FONT_12pt8b);
   int date_w = getStringWidth(date);
   int max_w = config.DisplayWidth - 2 - std::max(city_w, date_w) - (196 + 4) - 8;
 
@@ -1106,14 +1461,14 @@ void DrawOWM::drawAlerts(std::vector<owm_alerts_t> & alerts,
     // must be called after getAlertBitmap
     toTitleCase(cur_alert.event);
 
-    display.setFreeFont(&FONT_14pt8b);
+    setFreeFont(&FONT_14pt8b);
     if (getStringWidth(cur_alert.event) <= max_w)
     { // Fits on a single line, draw along bottom
       drawString(196 + 48 + 4, 24 + 8 - 12 + 20 + 1, cur_alert.event, LEFT);
     }
     else
     { // use smaller font
-      display.setFreeFont(&FONT_12pt8b);
+      setFreeFont(&FONT_12pt8b);
       if (getStringWidth(cur_alert.event) <= max_w)
       { // Fits on a single line with smaller font, draw along bottom
         drawString(196 + 48 + 4, 24 + 8 - 12 + 17 + 1, cur_alert.event, LEFT);
@@ -1130,7 +1485,7 @@ void DrawOWM::drawAlerts(std::vector<owm_alerts_t> & alerts,
     // adjust max width to for 32x32 icons
     max_w -= 32;
 
-    display.setFreeFont(&FONT_12pt8b);
+    setFreeFont(&FONT_12pt8b);
     for (int i = 0; i < 2; ++i)
     {
       owm_alerts_t &cur_alert = alerts[alert_indices[i]];
@@ -1157,11 +1512,29 @@ void DrawOWM::drawAlerts(std::vector<owm_alerts_t> & alerts,
 void DrawOWM::drawLocationDate(const String &city, const String &date)
 {
   // location, date
-  display.setFreeFont(&FONT_16pt8b);
-  drawString(config.DisplayWidth - 2, 23, city, RIGHT, ACCENT_COLOR);
-  display.setFreeFont(&FONT_12pt8b);
-  drawString(config.DisplayWidth - 2, 30 + 4 + 17, date, RIGHT);
-  return;
+   uint16_t x = config.DisplayWidth - 2;
+   uint16_t y;
+
+   LOG("\n");
+  if(config.DisplayWidth >= 640) {
+     setFreeFont(&FONT_16pt8b);
+     drawString(x, 23, city, RIGHT, ACCENT_COLOR);
+     setFreeFont(&FONT_12pt8b);
+     drawString(x, 30 + 4 + 17, date, RIGHT);
+  }
+  else {
+  // NB: this code is VERY specific to Adafruit_GFX fonts!
+     uint16_t BelowLine;
+     uint16_t BelowLast;
+     setFreeFont(&FONT_11pt8b);
+     y = getTextHeight(city,&BelowLine) - BelowLine;
+     drawString(x,y,city,RIGHT,ACCENT_COLOR);
+
+     setFreeFont(&FONT_8pt8b);
+     BelowLast = BelowLine;
+     y += BelowLast + getTextHeight(date,&BelowLine) - BelowLine + 1;
+     drawString(x,y,date,RIGHT);
+  }
 } // end drawLocationDate
 
 /* The % operator in C++ is not a true modulo operator but it instead a
@@ -1193,14 +1566,39 @@ int DrawOWM::kelvin_to_plot_y(float kelvin, int tempBoundMin, float yPxPerUnit,
 /* This function is responsible for drawing the outlook graph for the specified
  * number of hours(up to 48).
  */
-void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *daily,
-                      tm timeInfo)
+void DrawOWM::drawOutlookGraph(
+   const owm_hourly_t *hourly,
+   const owm_daily_t *daily,
+   tm timeInfo)
 {
-  const int xPos0 = 350;
+  int xPos0 = 0;
   int xPos1 = config.DisplayWidth;
-  const int yPos0 = 216;
-  const int yPos1 = config.DisplayHeight - 46;
+  int yPos0 = 0;
+  int yPos1 = 0;
+  const char *HourFormat = HOUR_FORMAT;
 
+  LOG("\n");
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        xPos0 = 198;
+        yPos0 = 108;
+        yPos1 = config.DisplayHeight - 19 - 23;
+     // no room for AM/PM
+        HourFormat = "%l";
+        break;
+
+     case FORMAT_640X384:
+     // no room for AM/PM
+        HourFormat = "%l";
+     // Intentional fall though to FORMAT_800X480
+     case FORMAT_800X480:
+        xPos0 = 350;
+        yPos0 = 216;
+        yPos1 = config.DisplayHeight - 46;
+        break;
+  }
+
+  // draw x tick marks
   // calculate y max/min and intervals
   int yMajorTicks = 5;
   float tempMin;
@@ -1268,17 +1666,13 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
   }
 
   int yPrecipMajorTickDecimals;
-  float precipBoundMax;
+  float precipBoundMax = 0.0f;
   switch(config.PrecipHrType) {
       case UNITS_HOURLY_PRECIP_POP:
         xPos1 = config.DisplayWidth - 23;
         if (precipMax > 0)
         {
           precipBoundMax = 100.0f;
-        }
-        else
-        {
-          precipBoundMax = 0.0f;
         }
         break;
 
@@ -1340,8 +1734,8 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
   }
 
   // draw x axis
-  display.drawLine(xPos0, yPos1    , xPos1, yPos1    , TFT_BLACK);
-  display.drawLine(xPos0, yPos1 - 1, xPos1, yPos1 - 1, TFT_BLACK);
+  drawLine(xPos0, yPos1    , xPos1, yPos1    , TFT_BLACK);
+  drawLine(xPos0, yPos1 - 1, xPos1, yPos1 - 1, TFT_BLACK);
 
   // draw y axis
   float yInterval = (yPos1 - yPos0) / static_cast<float>(yMajorTicks);
@@ -1350,7 +1744,7 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
     String dataStr;
     String precipUnit;
     int yTick = static_cast<int>(yPos0 + (i * yInterval));
-    display.setFreeFont(&FONT_8pt8b);
+    setFreeFont(&FONT_8pt8b);
     // Temperature
     dataStr = String(tempBoundMax - (i * yTempMajorTicks));
     dataStr += "\260";
@@ -1382,8 +1776,8 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
             break;
        }
       drawString(xPos1 + 8, yTick + 4, dataStr, LEFT);
-      display.setFreeFont(&FONT_5pt8b);
-      drawString(display.getCursorX(), yTick + 4, precipUnit, LEFT);
+      setFreeFont(&FONT_5pt8b);
+      drawString(getCursorX(), yTick + 4, precipUnit, LEFT);
     } // end draw labels if precip is >0
 
     // draw dotted line
@@ -1391,7 +1785,7 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
     {
       for (int x = xPos0; x <= xPos1 + 1; x += 3)
       {
-        display.drawPixel(x, yTick + (yTick % 2), TFT_BLACK);
+        drawPixel(x, yTick + (yTick % 2), TFT_BLACK);
       }
     }
   }
@@ -1400,7 +1794,7 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
   int hourInterval = static_cast<int>(ceil(HOURLY_GRAPH_MAX
                                            / static_cast<float>(xMaxTicks)));
   float xInterval = (xPos1 - xPos0 - 1) / static_cast<float>(HOURLY_GRAPH_MAX);
-  display.setFreeFont(&FONT_8pt8b);
+  setFreeFont(&FONT_8pt8b);
 
   // precalculate all x and y coordinates for temperature values
   float yPxPerUnit = (yPos1 - yPos0)
@@ -1419,7 +1813,7 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
 #if DISPLAY_HOURLY_ICONS
   int day_idx = 0;
 #endif
-  display.setFreeFont(&FONT_8pt8b);
+  setFreeFont(&FONT_8pt8b);
   for (int i = 0; i < HOURLY_GRAPH_MAX; ++i)
   {
     int xTick = static_cast<int>(xPos0 + (i * xInterval));
@@ -1433,9 +1827,9 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
       y0_t = y_t[i - 1];
       y1_t = y_t[i    ];
       // graph temperature
-      display.drawLine(x0_t    , y0_t    , x1_t    , y1_t    , ACCENT_COLOR);
-      display.drawLine(x0_t    , y0_t + 1, x1_t    , y1_t + 1, ACCENT_COLOR);
-      display.drawLine(x0_t - 1, y0_t    , x1_t - 1, y1_t    , ACCENT_COLOR);
+      drawLine(x0_t    , y0_t    , x1_t    , y1_t    , ACCENT_COLOR);
+      drawLine(x0_t    , y0_t + 1, x1_t    , y1_t + 1, ACCENT_COLOR);
+      drawLine(x0_t - 1, y0_t    , x1_t - 1, y1_t    , ACCENT_COLOR);
 
       // draw hourly bitmap
 #if DISPLAY_HOURLY_ICONS
@@ -1506,20 +1900,20 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
     {
       for (int x = x0_t + (x0_t % 2); x < x1_t; x += 2)
       {
-        display.drawPixel(x, y, TFT_BLACK);
+        drawPixel(x, y, TFT_BLACK);
       }
     }
 
     if ((i % hourInterval) == 0)
     {
       // draw x tick marks
-      display.drawLine(xTick    , yPos1 + 1, xTick    , yPos1 + 4, TFT_BLACK);
-      display.drawLine(xTick + 1, yPos1 + 1, xTick + 1, yPos1 + 4, TFT_BLACK);
+      drawLine(xTick    , yPos1 + 1, xTick    , yPos1 + 4, TFT_BLACK);
+      drawLine(xTick + 1, yPos1 + 1, xTick + 1, yPos1 + 4, TFT_BLACK);
       // draw x axis labels
       char timeBuffer[12] = {}; // big enough to accommodate "hh:mm:ss am"
       time_t ts = hourly[i].dt;
       tm *timeInfo = localtime(&ts);
-      _strftime(timeBuffer, sizeof(timeBuffer), HOUR_FORMAT, timeInfo);
+      _strftime(timeBuffer, sizeof(timeBuffer), HourFormat, timeInfo);
       drawString(xTick, yPos1 + 1 + 12 + 4 + 3, timeBuffer, CENTER);
     }
 
@@ -1531,17 +1925,15 @@ void DrawOWM::drawOutlookGraph(const owm_hourly_t *hourly, const owm_daily_t *da
     int xTick = static_cast<int>(
                 std::round(xPos0 + (HOURLY_GRAPH_MAX * xInterval)));
     // draw x tick marks
-    display.drawLine(xTick    , yPos1 + 1, xTick    , yPos1 + 4, TFT_BLACK);
-    display.drawLine(xTick + 1, yPos1 + 1, xTick + 1, yPos1 + 4, TFT_BLACK);
+    drawLine(xTick    , yPos1 + 1, xTick    , yPos1 + 4, TFT_BLACK);
+    drawLine(xTick + 1, yPos1 + 1, xTick + 1, yPos1 + 4, TFT_BLACK);
     // draw x axis labels
     char timeBuffer[12] = {}; // big enough to accommodate "hh:mm:ss am"
     time_t ts = hourly[HOURLY_GRAPH_MAX - 1].dt + 3600;
     tm *timeInfo = localtime(&ts);
-    _strftime(timeBuffer, sizeof(timeBuffer), HOUR_FORMAT, timeInfo);
+    _strftime(timeBuffer, sizeof(timeBuffer), HourFormat, timeInfo);
     drawString(xTick, yPos1 + 1 + 12 + 4 + 3, timeBuffer, CENTER);
   }
-
-  return;
 } // end drawOutlookGraph
 
 /* This function is responsible for drawing the status bar along the bottom of
@@ -1552,9 +1944,25 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
 {
   String dataStr;
   uint16_t dataColor = TFT_BLACK;
-  display.setFreeFont(&FONT_6pt8b);
+  setFreeFont(&FONT_6pt8b);
   int pos = config.DisplayWidth - 2;
   const int sp = 2;
+  const unsigned char *IconBitmap = NULL;
+  uint16_t RefreshWI_SZ = 0;
+
+  LOG("\n");
+  switch (config.DisplayFormat) {
+     case FORMAT_400X300:
+        IconBitmap = wi_refresh_24x24;
+        RefreshWI_SZ = 24;
+        break;
+
+     case FORMAT_640X384:
+     case FORMAT_800X480:
+        IconBitmap = wi_refresh_32x32;
+        RefreshWI_SZ = 32;
+        break;
+  }
 
 #if BATTERY_MONITORING
   // battery - (expecting 3.7v LiPo)
@@ -1609,8 +2017,8 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
   dataColor = TFT_BLACK;
   drawString(pos, config.DisplayHeight - 1 - 2, refreshTimeStr, RIGHT, dataColor);
   pos -= getStringWidth(refreshTimeStr) + 25;
-  drawInvertedBitmap(pos, config.DisplayHeight - 1 - 21, wi_refresh_32x32,
-                             32, 32, dataColor);
+  drawInvertedBitmap(pos,config.DisplayHeight - 1 - 21,IconBitmap,
+                     RefreshWI_SZ,RefreshWI_SZ,dataColor);
   pos -= sp;
 
   // status
@@ -1635,7 +2043,7 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
 void DrawOWM::drawError(const uint8_t *bitmap_196x196,
                const String &errMsgLn1, const String &errMsgLn2)
 {
-  display.setFreeFont(&FONT_26pt8b);
+  setFreeFont(&FONT_26pt8b);
   if (!errMsgLn2.isEmpty())
   {
     drawString(config.DisplayWidth / 2,
@@ -1673,10 +2081,62 @@ void DrawOWM::drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], i
 #endif
          }
          if (!(byte & 0x80)) {
-            display.drawPixel(x + i, y + j, color);
+            drawPixel(x + i, y + j, color);
          }
       }
    }
+}
+
+// #define DEBUG_GET_HEIGHT
+uint16_t DrawOWM::getTextHeight(const String &str,uint16_t *pBelow)
+{
+   uint8_t glyph_ab = 0;
+   uint8_t glyph_bb = 0;
+   const char *pStr = str.c_str();
+   uint8_t c;
+#ifdef DEBUG_GET_HEIGHT
+   uint8_t ab_c = '?';
+   uint8_t bb_c = '?';
+#endif
+   uint16_t Ret;
+
+   // Find the biggest above and below baseline offsets
+   while((c = *pStr++)) {
+     if(c < CurrentFont->first) {
+        ELOG(" 0x%x < 0x%x, \"%s\"\n",c,CurrentFont->first,str.c_str());
+        break;
+     }
+     if(c > CurrentFont->last) {
+        ELOG(" 0x%x > 0x%x, \"%s\"\n",c,CurrentFont->last,str.c_str());
+        break;
+     }
+
+     GFXglyph *glyph1  = &CurrentFont->glyph[c - CurrentFont->first];
+     int8_t ab = -pgm_read_byte(&glyph1->yOffset);
+     if (ab > glyph_ab) {
+        glyph_ab = ab;
+#ifdef DEBUG_GET_HEIGHT
+        ab_c = c;
+#endif
+     }
+     int8_t bb = pgm_read_byte(&glyph1->height) - ab;
+     if (bb > glyph_bb) {
+        glyph_bb = bb;
+#ifdef DEBUG_GET_HEIGHT
+        bb_c = c;
+#endif
+     }
+   }
+   if(pBelow != NULL) {
+      *pBelow = glyph_bb;
+   }
+   Ret =  glyph_ab + glyph_bb;
+#ifdef DEBUG_GET_HEIGHT
+   LOG("'%c' is %d above base,'%c' is %d below base\n",ab_c,glyph_ab,bb_c,
+   glyph_bb);
+   LOG("Height of \"%s\" is %d\n",str.c_str(),Ret);
+#endif
+   return Ret;
 }
 
 /**************************************************************************/
@@ -1699,6 +2159,12 @@ void DrawOWM::getTextBounds(const String &str,int16_t x,int16_t y,int16_t *x1,
    *h =  display.fontHeight();
    *x1 = x + *w;
    *y1 = y + *h;
+//   LOG("\"%s\" is %d x %d\n",str.c_str(),*w,*h);
 }
 
+void DrawOWM::setFreeFont(const GFXfont *f)
+{
+   CurrentFont = f;
+   display.setFreeFont(f);
+}
 

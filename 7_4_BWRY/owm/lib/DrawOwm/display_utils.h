@@ -65,7 +65,10 @@ const char *getWiFidesc(int rssi);
 const uint8_t *getWiFiBitmap16(int rssi);
 const uint8_t *getHourlyForecastBitmap32(const owm_hourly_t &hourly,
                                          const owm_daily_t  &today);
+const uint8_t *getDailyForecastBitmap32(const owm_daily_t &daily);
 const uint8_t *getDailyForecastBitmap64(const owm_daily_t &daily);
+const uint8_t *getCurrentConditionsBitmap96(const owm_current_t &current,
+                                             const owm_daily_t   &today);
 const uint8_t *getCurrentConditionsBitmap196(const owm_current_t &current,
                                              const owm_daily_t   &today);
 const uint8_t *getAlertBitmap32(const owm_alerts_t &alert);
@@ -76,6 +79,7 @@ const char *getCompassPointNotation(int windDeg);
 const char *getHttpResponsePhrase(int code);
 void printHeapUsage();
 void disableBuiltinLED();
+const uint8_t *getMoonPhaseBitmap24(const owm_daily_t &daily);
 const uint8_t *getMoonPhaseBitmap48(const owm_daily_t &daily);
 const char *getMoonPhaseStr(const owm_daily_t &daily);
 

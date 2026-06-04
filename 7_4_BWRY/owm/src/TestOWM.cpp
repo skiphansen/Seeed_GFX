@@ -25,26 +25,30 @@ Here is the 6 colors you can display:
 #define LOG_RAW(format, ...)
 #endif
 
+void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height);
+
 EPaper epaper;
 
 void setup() 
 {
-   OwmArgs Args;
+   OwmConfig Config;
+   const char *FormatDesc = NULL;
 
    Serial.begin(115200);
 // City name that will be shown in the top-right corner of the display.
-   Args.City = "Rancho Palos Verdes";
-   Args.TimeFormat = "%l:%M %P";
-   Args.DateFormat = "%a, %B %e";
-   Args.ForecastApiResponse = OwmForecastTestResponse;
-   Args.AirPollutionApiResponse = OwmAirPollutionTestResponse;
-   Args.inTemp     = NAN;
-   Args.inHumidity = NAN;
-   Args.batteryVoltage = 2960;
-   Args.Rssi = -59;
-   Args.bMetric = true;
-   Args.bHighRes = true;
-
+   Config.City = "Rancho Palos Verdes";
+   Config.TimeFormat = "%l:%M %P";
+   Config.DateFormat = "%a, %B %e";
+   Config.ForecastApiResponse = OwmForecastTestResponse;
+   Config.AirPollutionApiResponse = OwmAirPollutionTestResponse;
+   Config.inTemp     = NAN;
+   Config.inHumidity = NAN;
+   Config.batteryVoltage = 2960;
+   Config.Rssi = -59;
+   Config.bMetric = false;
+   Config.DisplayFormat = FORMAT_400X300;
+//   Config.DisplayFormat = FORMAT_640X384;
+//   Config.DisplayFormat = FORMAT_800X480;
 
    setenv("TZ", "PST8PDT", 1);
    tzset();
@@ -57,56 +61,81 @@ void setup()
    while (true) {
       LOG("Press a key to continue\n");
       while (!Serial.available());
-      int incomingByte = Serial.read();
-      Args.WindSpeed = Args.bMetric ? UNITS_SPEED_KILOMETERSPERHOUR : 
+      while (Serial.available()) {
+         Serial.read();
+      }
+      Config.WindSpeed = Config.bMetric ? UNITS_SPEED_KILOMETERSPERHOUR : 
                      UNITS_SPEED_MILESPERHOUR;
-      Args.DistanceType = Args.bMetric ? UNITS_DIST_KILOMETERS : UNITS_DIST_MILES;
-      Args.PrecipType = Args.bMetric ? UNITS_DAILY_PRECIP_MILLIMETERS : 
+      Config.DistanceType = Config.bMetric ? UNITS_DIST_KILOMETERS : UNITS_DIST_MILES;
+      Config.PrecipType = Config.bMetric ? UNITS_DAILY_PRECIP_MILLIMETERS : 
                                        UNITS_DAILY_PRECIP_INCHES;
 
-      Args.PrecipHrType = Args.bMetric ? UNITS_HOURLY_PRECIP_MILLIMETERS :
+      Config.PrecipHrType = Config.bMetric ? UNITS_HOURLY_PRECIP_MILLIMETERS :
                                          UNITS_HOURLY_PRECIP_INCHES;
-      Args.PressureType = Args.bMetric ? UNITS_PRES_MILLIBARS :
+      Config.PressureType = Config.bMetric ? UNITS_PRES_MILLIBARS :
                                          UNITS_PRES_INCHESOFMERCURY;
 
-      Args.bDisplayAlerts = Args.bMetric ? false : true;
-      Args.bDisplayAlerts = Args.bMetric ? false : true;
-      if(Args.bHighRes) {
-         Args.DisplayWidth    = 800;
-         Args.DisplayHeight   = 480;
-         Args.PosSunrise      = 0;
-         Args.PosSunset       = 1;
-         Args.PosWind         = 2;
-         Args.PosHumidity     = 3;
-         Args.PosUvi          = 4;
-         Args.PosPressure     = 5;
-         Args.PosAirQuality   = 6;
-         Args.PosVisibility   = 7;
-         Args.PosIntemp       = 8;
-         Args.PosInhumidity   = 9;
-         Args.PosMoonrise     = -1;
-         Args.PosMoonset      = -1;
-         Args.PosMoonphase    = -1;
-         Args.PosDewpoint     = -1;
-      }
-      else {
+      Config.bDisplayAlerts = Config.bMetric ? false : true;
+      Config.bDisplayAlerts = Config.bMetric ? false : true;
+      switch(Config.DisplayFormat) {
+         case FORMAT_800X480:
+            Config.DisplayWidth    = 800;
+            Config.DisplayHeight   = 480;
+            Config.PosSunrise      = 0;
+            Config.PosSunset       = 1;
+            Config.PosWind         = 2;
+            Config.PosHumidity     = 3;
+            Config.PosUvi          = 4;
+            Config.PosPressure     = 5;
+            Config.PosAirQuality   = 6;
+            Config.PosVisibility   = 7;
+            Config.PosIntemp       = 8;
+            Config.PosInhumidity   = 9;
+            Config.PosMoonrise     = -1;
+            Config.PosMoonset      = -1;
+            Config.PosMoonphase    = -1;
+            Config.PosDewpoint     = -1;
+            break;
+
+         case FORMAT_640X384:
      // if a 640 x 384 display is used, then positions 6,7,8,9 are not available
-         Args.DisplayWidth    = 640;
-         Args.DisplayHeight   = 384;
-         Args.PosSunrise      = 0;
-         Args.PosSunset       = 1;
-         Args.PosWind         = 2;
-         Args.PosHumidity     = 3;
-         Args.PosVisibility   = 4;
-         Args.PosIntemp       = 5;
-         Args.PosUvi          = -1;
-         Args.PosPressure     = -1;
-         Args.PosAirQuality   = -1;
-         Args.PosInhumidity   = -1;
-         Args.PosMoonrise     = -1;
-         Args.PosMoonset      = -1;
-         Args.PosMoonphase    = -1;
-         Args.PosDewpoint     = -1;
+            Config.DisplayWidth    = 640;
+            Config.DisplayHeight   = 384;
+            Config.PosSunrise      = 0;
+            Config.PosSunset       = 1;
+            Config.PosWind         = 2;
+            Config.PosHumidity     = 3;
+            Config.PosVisibility   = 4;
+            Config.PosIntemp       = 5;
+            Config.PosUvi          = -1;
+            Config.PosPressure     = -1;
+            Config.PosAirQuality   = -1;
+            Config.PosInhumidity   = -1;
+            Config.PosMoonrise     = -1;
+            Config.PosMoonset      = -1;
+            Config.PosMoonphase    = -1;
+            Config.PosDewpoint     = -1;
+            break;
+
+         case FORMAT_400X300:
+      // if a 400 x 300 display is used, then 12 positions available ???
+            Config.DisplayWidth    = 400;
+            Config.DisplayHeight   = 300;
+            Config.PosSunrise      = 0;
+            Config.PosSunset       = 1;
+            Config.PosWind         = 2;
+            Config.PosHumidity     = 3;
+            Config.PosUvi          = 4;
+            Config.PosPressure     = 5;
+            Config.PosAirQuality   = 6;
+            Config.PosVisibility   = 7;
+            Config.PosIntemp       = 8;
+            Config.PosInhumidity   = 9;
+            Config.PosMoonrise     = -1;
+            Config.PosMoonset      = -1;
+            Config.PosMoonphase    = -1;
+            Config.PosDewpoint     = -1;
+            break;
       }
 
       epaper.begin();
@@ -115,22 +144,78 @@ void setup()
       epaper.setRotation(0);
       epaper.fillScreen(TFT_WHITE);
       epaper.setRotation(1);
+
+      int16_t xOffset = 0;
+      int16_t yOffset = 0;
+      switch(Config.DisplayFormat) {
+         case FORMAT_800X480:
+            FormatDesc = "800 x 480 ";
+            break;
+
+         case FORMAT_640X384:
+            FormatDesc = "640 x 384";
+            break;
+
+         case FORMAT_400X300:
+            FormatDesc = "400 x 300";
+            break;
+      }
+      xOffset = (800 - Config.DisplayWidth) / 2;
+      yOffset = (480 - Config.DisplayHeight) / 2;
+       
+      LOG("Width %d Height %d xOffset %d yOffset %d\n",
+          Config.DisplayWidth,Config.DisplayHeight,xOffset,yOffset);
+      Config.xOffset = xOffset;
+      Config.yOffset = yOffset;
+
+      if (Config.DisplayWidth != 800) {
+         DrawBoundingBox(xOffset,yOffset,Config.DisplayWidth,Config.DisplayHeight);
+      }
+
       LOG("Updating %s res display in %s mode.\n",
-          Args.bHighRes ? "high" : "low",
-          Args.bMetric ? "metric" : "english");
-      class DrawOWM *owm = new DrawOWM(epaper,Args);
+          FormatDesc,Config.bMetric ? "metric" : "english");
+
+      class DrawOWM *owm = new DrawOWM(epaper,Config);
       owm->DrawIt();
       delete owm;
       epaper.update(); // update the display
-  // setup Args for next screen
-      if(!Args.bMetric) {
-         Args.bHighRes = !Args.bHighRes;
+  // setup Config for next screen
+
+      switch(Config.DisplayFormat) {
+         case FORMAT_400X300:
+            Config.DisplayFormat = FORMAT_640X384;
+            break;
+
+         case FORMAT_640X384:
+            Config.DisplayFormat = FORMAT_800X480;
+            break;
+
+         case FORMAT_800X480:
+            Config.DisplayFormat = FORMAT_400X300;
+            Config.bMetric = !Config.bMetric;
+            break;
       }
-      Args.bMetric = !Args.bMetric;
    }
 }
 
 void loop()
 {
     // put your main code here, to run repeatedly:
+}
+
+// Draw bounding box
+void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height)
+{
+   // left edge
+   epaper.drawLine(xOffset - 1,yOffset - 1,
+                   xOffset - 1,yOffset + Height - 1,TFT_BLACK);  
+   // right edge
+   epaper.drawLine(xOffset + Width + 1,yOffset - 1,
+                   xOffset + Width + 1,yOffset + Height - 1,TFT_BLACK);  
+   // bottom
+   epaper.drawLine(xOffset - 1,yOffset + Height - 1,
+                   xOffset + Width + 1,yOffset + Height - 1,TFT_BLACK); 
+   // top 
+   epaper.drawLine(xOffset - 1,yOffset - 1,
+                   xOffset + Width + 1,yOffset - 1,TFT_BLACK); 
 }

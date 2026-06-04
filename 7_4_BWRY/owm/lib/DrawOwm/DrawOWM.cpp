@@ -14,12 +14,10 @@
 #define LOG_RAW(format, ...)
 #endif
 
-// for compatibility with Seeed_GFX
-#ifdef EPAPER_ENABLE
-DrawOWM::DrawOWM(EPaper &epaper,OwmArgs &Args) : display(epaper), config(Args){}
-   #define _THE_DISPLAY_CLASS EPaper
+#ifdef SEEED_GFX
+DrawOWM::DrawOWM(EPaper &epaper,OwmConfig &Config) : display(epaper), config(Config){}
 #else
-DrawOWM::DrawOWM(TFT_eSprite &epaper,OwmArgs &Args) : display(epaper), config(Args){}
+DrawOWM::DrawOWM(TFT_eSprite &epaper,OwmConfig &Config) : display(epaper), config(Config){}
 #endif
 
 void DrawOWM::DrawIt()
@@ -35,8 +33,8 @@ void DrawOWM::DrawIt()
    localtime_r(&CurrentTime, &timeInfo);
    getRefreshTimeStr(refreshTimeStr,true,&timeInfo);
    getDateStr(dateStr, &timeInfo);
-
    deserializeAirQuality(config.AirPollutionApiResponse,owm_air_pollution);
+   drawInit();
    drawCurrentConditions(owm_onecall.current, owm_onecall.daily[0],
                          owm_air_pollution, config.inTemp,config.inHumidity);
    drawOutlookGraph(owm_onecall.hourly, owm_onecall.daily, timeInfo);

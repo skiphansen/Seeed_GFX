@@ -5,12 +5,6 @@
 #include "api_response.h"
 #include "config.h"
 
-// for compatibility with Seeed_GFX
-#ifdef EPAPER_ENABLE
-   #define _THE_DISPLAY_CLASS EPaper
-#else
-   #define _THE_DISPLAY_CLASS TFT_eSprite
-#endif
 typedef enum alignment
 {
   LEFT,
@@ -76,6 +70,12 @@ typedef enum {
    UNITS_PRES_POUNDSPERSQUAREINCH
 } ConfigPressure_t;
 
+#define FORMAT_COUNT 3
+typedef enum {
+   FORMAT_800X480,
+   FORMAT_640X384,
+   FORMAT_400X300,
+} ConfigDisplayFormat_t;
 
 typedef struct {
    const char *City;
@@ -85,8 +85,8 @@ typedef struct {
    const char *AirPollutionApiResponse;
 // bMetric false: Fahrenheit / MPH / inches
 // bMetric true: Celcius / Beaufort / millimeters
-   bool bHighRes;  // true for 800 x 640, false for 640 x 384 
    bool bMetric;
+   ConfigDisplayFormat_t DisplayFormat;
    ConfigWindSpeed_t WindSpeed;
    ConfigDistance_t DistanceType;
    ConfigPrecip_t PrecipType;
@@ -127,24 +127,33 @@ typedef struct {
    int8_t PosDewpoint;
    uint16_t DisplayWidth;
    uint16_t DisplayHeight;
+   int16_t xOffset;
+   int16_t yOffset;
 
    float inTemp;
    float inHumidity;
    uint16_t batteryVoltage;
    int Rssi;
-} OwmArgs;
+} OwmConfig;
 
 class DrawOWM {
 public:
-   DrawOWM(_THE_DISPLAY_CLASS &spr,OwmArgs &Args);
+#ifdef SEEED_GFX
+   DrawOWM(EPaper &spr,OwmConfig &Config);
+#else
+   DrawOWM(TFT_eSprite &spr,OwmConfig &Config);
+#endif
    void DrawIt();
 
 private:
-      _THE_DISPLAY_CLASS &display;
-      OwmArgs &config;
+#ifdef SEEED_GFX
+      EPaper &display;
+#else
+      TFT_eSprite &display;
+#endif
+      OwmConfig &config;
 
-   // too large to allocate locally on stack
-
+      void drawInit();
       uint16_t getStringWidth(const String &text);
       uint16_t getStringHeight(const String &text);
       void drawString(int16_t x, int16_t y, const String &text,
@@ -186,14 +195,46 @@ private:
       void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], 
                               int16_t w, int16_t h, uint16_t color);
       void getDateStr(String &s, tm *timeInfo);
+      uint16_t getTextHeight(const String &str,uint16_t *pBelow = NULL);
       void getTextBounds(const String &str,int16_t x,int16_t y,int16_t *x1,
                          int16_t *y1,uint16_t *w,uint16_t *h);
       int kelvin_to_plot_y(float kelvin, int tempBoundMin, float yPxPerUnit,
                            int yBoundMin);
+      void setFreeFont(const GFXfont *f);
+      void setCursor(int16_t x, int16_t y);
+      int16_t getCursorX(void);
+      int16_t getCursorY(void);
+      void drawLine(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t color);
+      void drawPixel(int32_t x, int32_t y, uint32_t color);
 
       owm_resp_onecall_t       owm_onecall;
       owm_resp_air_pollution_t owm_air_pollution;
+
+// Widget layout constants — different for 4.2in (400x300) vs 7.5in (800x480)
+//   FORMAT_800X480, FORMAT_640X384: 2 cols × 5 rows, icon=48×48, col=162px, base_y=204
+//   FORMAT_400X300: 2 cols × 5 rows, icon=24×24, col=85px, base_y=104
+
+// column width (px)
+  uint16_t WI_COL;
+// first-row base y
+  uint16_t WI_Y0;
+// row stride
+  uint16_t WI_DY;
+// icon size
+  uint16_t WI_SZ;
+// label/data x offset from col start
+  uint16_t WI_LOFF;
+// label baseline delta from row base
+  uint16_t WI_LDY;
+// data baseline delta from row base (5 + 24/2)
+  uint16_t WI_DDY;
+
+  const GFXfont *LabelFont;
+  const GFXfont *ValueFont;
+  const GFXfont *UnitFont;
+  uint16_t MaxX;
+  uint16_t MaxY;
+  const GFXfont *CurrentFont;
 };
 
-#undef _THE_DISPLAY_CLASS
 #endif   // _DRAW_OWM_H_

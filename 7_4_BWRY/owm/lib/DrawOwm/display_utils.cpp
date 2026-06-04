@@ -611,6 +611,18 @@ const uint8_t *getDailyForecastBitmap64(const owm_daily_t &daily)
   return getConditionsBitmap<64>(id, day, moon, cloudy, windy);
 } // end getForecastBitmap64
 
+const uint8_t *getDailyForecastBitmap32(const owm_daily_t &daily)
+{
+  const int id = daily.weather.id;
+  // always show daytime icon for daily forecast
+  const bool day = true;
+  const bool moon = false;
+  const bool cloudy = isCloudy(daily.clouds);
+  const bool windy = isWindy(daily.wind_speed, daily.wind_gust);
+  return getConditionsBitmap<32>(id, day, moon, cloudy, windy);
+} // end getForecastBitmap32
+
+
 /* Takes the current weather and today's daily weather forcast (from
  * OpenWeatherMap API response) and returns a pointer to the icon's 196x196
  * bitmap.
@@ -628,6 +640,20 @@ const uint8_t *getCurrentConditionsBitmap196(const owm_current_t &current,
   const bool windy = isWindy(current.wind_speed, current.wind_gust);
   return getConditionsBitmap<196>(id, day, moon, cloudy, windy);
 } // end getCurrentConditionsBitmap196
+
+const uint8_t *getCurrentConditionsBitmap96(const owm_current_t &current,
+                                             const owm_daily_t   &today)
+{
+  const int id = current.weather.id;
+  const bool day = isDay(current.weather.icon);
+  const bool moon = isMoonInSky(current.dt, today.moonrise, today.moonset,
+                                today.moon_phase);
+  const bool cloudy = isCloudy(current.clouds);
+  const bool windy = isWindy(current.wind_speed, current.wind_gust);
+
+  return getConditionsBitmap<96>(id, day, moon, cloudy, windy);
+} // end getCurrentConditionsBitmap96
+
 
 /* Returns a 32x32 bitmap for a given alert.
  *
@@ -1393,6 +1419,38 @@ static const unsigned char *moon_phase_icon_arr[] = {
   wi_moon_alt_waning_crescent_5_48x48,
   wi_moon_alt_waning_crescent_6_48x48,
   wi_moon_alt_new_48x48 };
+
+static const unsigned char *moon_phase_icon_arr24[] = {
+  wi_moon_alt_new_24x24,
+  wi_moon_alt_waxing_crescent_1_24x24,
+  wi_moon_alt_waxing_crescent_2_24x24,
+  wi_moon_alt_waxing_crescent_3_24x24,
+  wi_moon_alt_waxing_crescent_4_24x24,
+  wi_moon_alt_waxing_crescent_5_24x24,
+  wi_moon_alt_waxing_crescent_6_24x24,
+  wi_moon_alt_first_quarter_24x24,
+  wi_moon_alt_waxing_gibbous_1_24x24,
+  wi_moon_alt_waxing_gibbous_2_24x24,
+  wi_moon_alt_waxing_gibbous_3_24x24,
+  wi_moon_alt_waxing_gibbous_4_24x24,
+  wi_moon_alt_waxing_gibbous_5_24x24,
+  wi_moon_alt_waxing_gibbous_6_24x24,
+  wi_moon_alt_full_24x24,
+  wi_moon_alt_waning_gibbous_1_24x24,
+  wi_moon_alt_waning_gibbous_2_24x24,
+  wi_moon_alt_waning_gibbous_3_24x24,
+  wi_moon_alt_waning_gibbous_4_24x24,
+  wi_moon_alt_waning_gibbous_5_24x24,
+  wi_moon_alt_waning_gibbous_6_24x24,
+  wi_moon_alt_third_quarter_24x24,
+  wi_moon_alt_waning_crescent_1_24x24,
+  wi_moon_alt_waning_crescent_2_24x24,
+  wi_moon_alt_waning_crescent_3_24x24,
+  wi_moon_alt_waning_crescent_4_24x24,
+  wi_moon_alt_waning_crescent_5_24x24,
+  wi_moon_alt_waning_crescent_6_24x24,
+  wi_moon_alt_new_24x24 };
+
 #endif
 // end MOONPHASE_ALTERNATIVE
 
@@ -1407,6 +1465,12 @@ const uint8_t *getMoonPhaseBitmap48(const owm_daily_t &daily)
   int n = static_cast<int>(daily.moon_phase * 28 + 0.5);
     return moon_phase_icon_arr[n];
 } // end getMoonPhaseBitmap48
+
+const uint8_t *getMoonPhaseBitmap24(const owm_daily_t &daily)
+{
+  int n = static_cast<int>(daily.moon_phase * 28 + 0.5);
+    return moon_phase_icon_arr24[n];
+} // end getMoonPhaseBitmap24
 
 
 // Returns the current moon phase string

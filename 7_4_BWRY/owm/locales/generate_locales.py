@@ -23,15 +23,45 @@ def generate_locales():
 
     locale_files = sorted(os.listdir('locales'))
 
+    # create list of languages
+    languages = {}
+    variables = []
+    bFirst = True
     for locale_file in locale_files:
         with open('locales/' + locale_file, "r") as file:
-            print(f'File {locale_file}:')
+            print(f'Parsing {locale_file}')
+            language = ""
             for line in file:
-                language = re.search("OWM_LANG",line)
-                if not language == None:
-                    print(line)
+                match = re.search(r'^.*OWM_LANG.*"([^"]+)"',line)
+                if not match == None:
+                    language = match.group(1)
+                    if language in languages.keys():
+                        print(f'Ignoring {locale_file}, already have {language}')
+                    else:
+                        languages[language] = {}
+                    break;
 
-
+            file.seek(0)
+            for line in file:
+                match = re.search(r'HTTP|_WL_|WIFI|DESERIALIZATION',line)
+                if not match == None:
+                #ignore HTTP status, we don't need them
+                    continue
+                match = re.search(r'const char \*(TXT_[^\s]+).*\s*"(.+);',line)
+                
+                if not match == None:
+                    variable = match.group(1)
+                    value = '"' + match.group(2)
+                    print(f'{variable} = {value}')
+                    if not variable in variables:
+                        if not bFirst:
+                            print(f'Found new variable "{variable}" in {locale_file}')
+                        variables.append(variable)
+                    print(f'language: {language}')
+                    languages[language][variable] = value
+        bFirst = False
+    print(f'Languages: {languages}')
+    # create list of keyworks
 
 
 generate_locales()
