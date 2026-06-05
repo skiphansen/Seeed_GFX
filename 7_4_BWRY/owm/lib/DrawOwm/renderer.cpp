@@ -1965,16 +1965,14 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
   }
 
 #if BATTERY_MONITORING
-  // battery - (expecting 3.7v LiPo)
-  uint32_t batPercent = calcBatPercent(batVoltage,
-                                       MIN_BATTERY_VOLTAGE,
-                                       MAX_BATTERY_VOLTAGE);
-#if defined(DISP_3C_B) || defined(DISP_7C_F)
-  if (batVoltage < WARN_BATTERY_VOLTAGE)
+  uint32_t batPercent = calcBatPercent(batVoltage,MIN_BATTERY_VOLTAGE,
+                                       MAX_BATTERY_VOLTAGE,config.bLiPo);
+  uint32_t WarnBattV = config.bLiPo ? WARN_BATTERY_VOLTAGE : 
+                                      WARN_BATTERY_VOLTAGE_COIN;
+  if (batVoltage < WarnBattV)
   {
     dataColor = ACCENT_COLOR;
   }
-#endif
 #if STATUS_BAR_EXTRAS_BAT_PERCENTAGE || STATUS_BAR_EXTRAS_BAT_VOLTAGE
   dataStr = "";
 #if STATUS_BAR_EXTRAS_BAT_PERCENTAGE
@@ -1988,7 +1986,7 @@ void DrawOWM::drawStatusBar(const String &statusStr, const String &refreshTimeSt
 #endif
   pos -= 24;
   drawInvertedBitmap(pos, config.DisplayHeight - 1 - 17,
-                             getBatBitmap24(batPercent), 24, 24, dataColor);
+                     getBatBitmap24(batPercent), 24, 24, dataColor);
   pos -= sp + 9;
 #endif
 

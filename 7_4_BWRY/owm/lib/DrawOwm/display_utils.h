@@ -51,7 +51,7 @@ enum alert_category {
 };
 
 uint32_t readBatteryVoltage();
-uint32_t calcBatPercent(uint32_t v, uint32_t minv, uint32_t maxv);
+uint32_t calcBatPercent(uint32_t v, uint32_t minv, uint32_t maxv,bool bLiPo);
 const uint8_t *getBatBitmap24(uint32_t batPercent);
 void getRefreshTimeStr(String &s, bool timeSuccess, tm *timeInfo);
 void toTitleCase(String &text);

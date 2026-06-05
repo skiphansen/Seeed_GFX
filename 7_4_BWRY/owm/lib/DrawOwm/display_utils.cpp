@@ -33,6 +33,14 @@
 // icon header files
 #include "icons/icons.h"
 
+#define ENABLE_LOGGING  0
+#if ENABLE_LOGGING && __has_include("logging.h") 
+#include "logging.h"
+#else
+#define LOG(format, ...)
+#define ELOG(format, ...)
+#define LOG_RAW(format, ...)
+#endif
 
 /* Returns battery percentage, rounded to the nearest integer.
  * Takes a voltage in millivolts and uses a sigmoidal approximation to find an
@@ -46,17 +54,46 @@
  *
  * c - c / (1 + k*x/v)^3
  */
-uint32_t calcBatPercent(uint32_t v, uint32_t minv, uint32_t maxv)
+uint32_t calcBatPercent(uint32_t v, uint32_t minv, uint32_t maxv,bool bLiPo) 
 {
-  // slow
-  //uint32_t p = 110 - (110 / (1 + pow(1.468 * (v - minv)/(maxv - minv), 6)));
+   uint32_t Ret = 0;
+   if (bLiPo) {
+      // slow
+      //Ret = 110 - (110 / (1 + pow(1.468 * (v - minv)/(maxv - minv), 6)));
 
-  // steep
-  //uint32_t p = 102 - (102 / (1 + pow(1.621 * (v - minv)/(maxv - minv), 8.1)));
+      // steep
+      //Ret = 102 - (102 / (1 + pow(1.621 * (v - minv)/(maxv - minv), 8.1)));
 
-  // normal
-  uint32_t p = 105 - (105 / (1 + pow(1.724 * (v - minv)/(maxv - minv), 5.5)));
-  return p >= 100 ? 100 : p;
+      // normal
+      Ret = 105 - (105 / (1 + pow(1.724 * (v - minv)/(maxv - minv), 5.5)));
+   }
+   else {
+   // LUT version for CR2450 coin cell (lithium manganese dioxide)
+   // See https://www.flywing-tech.com/blog/everything-you-need-to-know-about-the-cr2450-3v-battery/
+   // LUT is from Google AI, but at least it works, the original calculaton
+   // returned 100% for v < minv !
+      if (v >= 3050) {
+         Ret = 100;
+      }
+      else if (v >= 2950) {
+         Ret = 90 + ((v - 2950)/(3050 - 2950)) * 10;
+      }
+      if (v >= 2900) {
+         Ret = 60 + ((v - 2900)/(2950 - 2900)) * 30;
+      }
+      else if (v >= 2850) {
+         Ret = 30 + ((v - 2850)/(2900 - 2850)) * 30;
+      }
+      else if (v >= 2750) {
+         Ret = 10 + ((v - 2750)/(2850 - 2750)) * 20;
+      }
+      else if (v >= 2500) {
+         Ret = 0  + ((v - 2500)/(2750 - 2500)) * 10;
+      }
+   }
+
+   LOG("v %d  = %d%%\n",v,Ret);
+   return Ret >= 100 ? 100 : Ret;
 } // end calcBatPercent
 
 /* Returns 24x24 bitmap incidcating battery status.

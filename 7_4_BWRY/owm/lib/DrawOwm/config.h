@@ -189,14 +189,13 @@
 // Number of hours to display on the outlook graph. (range: [8-48])
 #define HOURLY_GRAPH_MAX   24
 
-#define WARN_BATTERY_VOLTAGE     2400 // (millivolts) ~20%
-#define LOW_BATTERY_VOLTAGE      2200 // (millivolts) ~10%
-#define VERY_LOW_BATTERY_VOLTAGE 2000 // (millivolts)  ~8%
-#define CRIT_LOW_BATTERY_VOLTAGE 1800 // (millivolts)  ~5%
+#define WARN_BATTERY_VOLTAGE        3535  // (millivolts) ~20%
+#define WARN_BATTERY_VOLTAGE_COIN   2750  // (millivolts) ~20%
 
 // Battery voltage calculations are based on a typical 3.7v LiPo.
-#define MAX_BATTERY_VOLTAGE      3200  // (millivolts)
-#define MIN_BATTERY_VOLTAGE      2400  // (millivolts)
+#define MAX_BATTERY_VOLTAGE      4200  // (millivolts)
+#define MIN_BATTERY_VOLTAGE      3000  // (millivolts)
+
 
 #if !(defined(LOCALE))
   #error Invalid configuration. Locale not selected.

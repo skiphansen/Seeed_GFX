@@ -86,6 +86,7 @@ typedef struct {
 // bMetric false: Fahrenheit / MPH / inches
 // bMetric true: Celcius / Beaufort / millimeters
    bool bMetric;
+   bool bLiPo;
    ConfigDisplayFormat_t DisplayFormat;
    ConfigWindSpeed_t WindSpeed;
    ConfigDistance_t DistanceType;
