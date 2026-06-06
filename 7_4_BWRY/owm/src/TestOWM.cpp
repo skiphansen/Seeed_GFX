@@ -46,6 +46,7 @@ void setup()
    Config.batteryVoltage = 2960;
    Config.Rssi = -59;
    Config.bMetric = false;
+   Config.bLiPo = false;
    Config.DisplayFormat = FORMAT_400X300;
 //   Config.DisplayFormat = FORMAT_640X384;
 //   Config.DisplayFormat = FORMAT_800X480;

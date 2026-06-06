@@ -403,16 +403,17 @@ void DrawOWM::drawCurrentUVI(const owm_current_t &current)
   setFreeFont(LabelFont);
   drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_LDY + WI_DY * PosY, TXT_UV_INDEX, LEFT);
 
-  // spacing between end of index value and start of descriptor text
-  const int sp = 8;
-
   // uv index
   setFreeFont(ValueFont);
   unsigned int uvi = static_cast<unsigned int>(
                                 std::max(std::round(current.uvi), 0.0f));
   dataStr = String(uvi);
   drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
-  setFreeFont(&FONT_7pt8b);
+  const GFXfont *temp = config.DisplayWidth >= 640 ? &FONT_7pt8b : &FONT_5pt8b;
+  // spacing between end of index value and start of descriptor text
+  const int sp = config.DisplayWidth >= 640 ? 8 : 6;
+  setFreeFont(temp);
+
   dataStr = String(getUVIdesc(uvi));
   int max_w = (162 + (PosX * 162) - sp) - (getCursorX() + sp);
   if (getStringWidth(dataStr) <= max_w)
