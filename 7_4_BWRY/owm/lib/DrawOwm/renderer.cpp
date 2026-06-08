@@ -411,7 +411,7 @@ void DrawOWM::drawCurrentUVI(const owm_current_t &current)
   drawString(WI_LOFF + (WI_COL * PosX), WI_Y0 + WI_DDY + WI_DY * PosY, dataStr, LEFT);
   const GFXfont *temp = config.DisplayWidth >= 640 ? &FONT_7pt8b : &FONT_5pt8b;
   // spacing between end of index value and start of descriptor text
-  const int sp = config.DisplayWidth >= 640 ? 8 : 6;
+  const int sp = config.DisplayWidth >= 640 ? 8 : 2;
   setFreeFont(temp);
 
   dataStr = String(getUVIdesc(uvi));
