@@ -1,0 +1,11 @@
+FreeSans_5pt8b height is = 12
+FreeSans_6pt8b height is = 14
+FreeSans_7pt8b height is = 16
+FreeSans_8pt8b height is = 19
+FreeSans_11pt8b height is = 26
+FreeSans_12pt8b height is = 28
+FreeSans_14pt8b height is = 33
+FreeSans_16pt8b height is = 38
+FreeSans_18pt8b height is = 42
+FreeSans_26pt8b height is = 61
+
