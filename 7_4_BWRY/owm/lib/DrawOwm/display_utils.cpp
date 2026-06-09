@@ -149,7 +149,7 @@ void DrawOWM::getDateStr(String &s, tm *timeInfo)
 
 /* Gets string with the current date and time of the current refresh attempt.
  */
-void getRefreshTimeStr(String &s, bool timeSuccess, tm *timeInfo)
+void DrawOWM::getRefreshTimeStr(String &s, bool timeSuccess, tm *timeInfo)
 {
   if (timeSuccess == false)
   {
@@ -343,7 +343,7 @@ void filterAlerts(std::vector<owm_alerts_t> &resp, int *ignore_list)
 
 /* Returns the descriptor text for the given UV index.
  */
-const char *getUVIdesc(unsigned int uvi)
+const char *DrawOWM::getUVIdesc(unsigned int uvi)
 {
   if (uvi <= 2)
   {
@@ -369,7 +369,7 @@ const char *getUVIdesc(unsigned int uvi)
 
 /* Returns the wifi signal strength descriptor text for the given RSSI.
  */
-const char *getWiFidesc(int rssi)
+const char *DrawOWM::getWiFidesc(int rssi)
 {
   if (rssi == 0)
   {
@@ -1511,7 +1511,7 @@ const uint8_t *getMoonPhaseBitmap24(const owm_daily_t &daily)
 
 
 // Returns the current moon phase string
-  const char *getMoonPhaseStr(const owm_daily_t &daily)
+const char *DrawOWM::getMoonPhaseStr(const owm_daily_t &daily)
 {
   int n = static_cast<int>(daily.moon_phase * 28 + 0.5);
   switch(n)

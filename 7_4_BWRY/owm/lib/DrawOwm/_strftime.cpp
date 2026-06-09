@@ -44,6 +44,7 @@
 
 #include "_locale.h"
 #include "_strftime.h"
+#include <DrawOWM.h>
 
 #define TZ_EXT     // Olson's timezone package
 #define VMS_EXT    // includes %v for VMS date format
@@ -214,7 +215,7 @@ static void iso_8601_2000_year(char *buf, int year, size_t fw)
  * format specification format and places the result in the character array s of
  * size max.
  */
-size_t _strftime(char *s, size_t maxsize, const char *format,
+size_t DrawOWM::_strftime(char *s, size_t maxsize, const char *format,
                  const struct tm *timeptr)
 {
   char *endp = s + maxsize;

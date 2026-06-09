@@ -207,6 +207,13 @@ private:
       int16_t getCursorY(void);
       void drawLine(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t color);
       void drawPixel(int32_t x, int32_t y, uint32_t color);
+      void getRefreshTimeStr(String &s, bool timeSuccess, tm *timeInfo);
+      const char *getUVIdesc(unsigned int uvi);
+      const char *getWiFidesc(int rssi);
+      const char *getMoonPhaseStr(const owm_daily_t &daily);
+      size_t _strftime(char *s, size_t maxsize, const char *format,
+                       const struct tm *timeptr);
+
 
       owm_resp_onecall_t       owm_onecall;
       owm_resp_air_pollution_t owm_air_pollution;
@@ -236,6 +243,117 @@ private:
   uint16_t MaxX;
   uint16_t MaxY;
   const GFXfont *CurrentFont;
+
+// LC_TIME
+// locale-based information,
+// see https://man7.org/linux/man-pages/man3/nl_langinfo.3.html for more info.
+// Note to Translators:
+//   The LC_TIME definitions are included in the localedata/locales directory of
+//   the glibc source tree, in files named after the locale codes and encoding
+//   schemes. For example, the en_US locale data is stored in the
+//   localedata/locales/en_US file, which contains the definitions for date and
+//   time formats, month and day names, and other time-related settings for the
+//   LC_TIME category.
+//   https://www.gnu.org/software/libc/sources.html
+// D_T_FMT                 string for formatting date and time
+  const char *LC_D_T_FMT;
+// LC_D_FMT                date format string
+  const char *LC_D_FMT;
+// T_FMT                   time format string
+  const char *LC_T_FMT;
+// T_FMT_AMPM              a.m. or p.m. time format string
+  const char *LC_T_FMT_AMPM;
+// AM_STR                  Ante Meridian affix
+  const char *LC_AM_STR;
+// PM_STR                  Post Meridian affix
+  const char *LC_PM_STR;
+// DAY_{1-7}               name of the n-th day of the week
+  const char *LC_DAY[7];
+// ABDAY_{1-7}             abbreviated name of the n-th day of the week
+  const char *LC_ABDAY[7];
+// MON_{1-12}              name of the n-th month of the year
+   const char *LC_MON[12];
+// ABMON_{1-12}            abbreviated name of the n-th month of the year
+   const char *LC_ABMON[12];
+// ERA                     era description segments
+   const char *LC_ERA;
+// ERA_D_FMT               era date format string
+   const char *LC_ERA_D_FMT;
+// ERA_D_T_FMT             era date and time format string
+   const char *LC_ERA_D_T_FMT;
+// ERA_T_FMT               era time format string
+   const char *LC_ERA_T_FMT;
+
+// Title Case
+   const char *TXT_FEELS_LIKE;
+   const char *TXT_SUNRISE;
+   const char *TXT_SUNSET;
+   const char *TXT_MOONRISE;
+   const char *TXT_MOONSET;
+   const char *TXT_WIND;
+   const char *TXT_HUMIDITY;
+   const char *TXT_UV_INDEX;
+   const char *TXT_PRESSURE;
+   const char *TXT_AIR_QUALITY;
+   const char *TXT_AIR_POLLUTION;
+   const char *TXT_VISIBILITY;
+   const char *TXT_INDOOR_TEMPERATURE;
+   const char *TXT_INDOOR_HUMIDITY;
+   const char *TXT_DEWPOINT;
+// MOON PHASE
+   const char *TXT_MOONPHASE;
+   const char *TXT_NEW_MOON;
+   const char *TXT_WAXING_CRESCENT;
+   const char *TXT_FIRST_QUARTER;
+   const char *TXT_WAXING_GIBBOUS;
+   const char *TXT_FULL_MOON;
+   const char *TXT_WANING_GIBBOUS;
+   const char *TXT_THIRD_QUARTER;
+   const char *TXT_WANING_CRESCENT;
+
+// UV INDEX
+   const char *TXT_UV_LOW;
+   const char *TXT_UV_MODERATE;
+   const char *TXT_UV_HIGH;
+   const char *TXT_UV_VERY_HIGH;
+   const char *TXT_UV_EXTREME;
+
+// WIFI
+   const char *TXT_WIFI_EXCELLENT;
+   const char *TXT_WIFI_GOOD;
+   const char *TXT_WIFI_FAIR;
+   const char *TXT_WIFI_WEAK;
+   const char *TXT_WIFI_NO_CONNECTION;
+
+// UNIT SYMBOLS - TEMPERATURE
+   const char *TXT_UNITS_TEMP_KELVIN;
+   const char *TXT_UNITS_TEMP_CELSIUS;
+   const char *TXT_UNITS_TEMP_FAHRENHEIT;
+// UNIT SYMBOLS - WIND SPEED
+   const char *TXT_UNITS_SPEED_METERSPERSECOND;
+   const char *TXT_UNITS_SPEED_FEETPERSECOND;
+   const char *TXT_UNITS_SPEED_KILOMETERSPERHOUR;
+   const char *TXT_UNITS_SPEED_MILESPERHOUR;
+   const char *TXT_UNITS_SPEED_KNOTS;
+   const char *TXT_UNITS_SPEED_BEAUFORT;
+// UNIT SYMBOLS - PRESSURE
+   const char *TXT_UNITS_PRES_HECTOPASCALS;
+   const char *TXT_UNITS_PRES_PASCALS;
+   const char *TXT_UNITS_PRES_MILLIMETERSOFMERCURY;
+   const char *TXT_UNITS_PRES_INCHESOFMERCURY;
+   const char *TXT_UNITS_PRES_MILLIBARS;
+   const char *TXT_UNITS_PRES_ATMOSPHERES;
+   const char *TXT_UNITS_PRES_GRAMSPERSQUARECENTIMETER;
+   const char *TXT_UNITS_PRES_POUNDSPERSQUAREINCH;
+// UNITS SYMBOLS - VISIBILITY DISTANCE
+   const char *TXT_UNITS_DIST_KILOMETERS;
+   const char *TXT_UNITS_DIST_MILES;
+// UNITS SYMBOLS - PRECIPITATION
+   const char *TXT_UNITS_PRECIP_MILLIMETERS;
+   const char *TXT_UNITS_PRECIP_CENTIMETERS;
+   const char *TXT_UNITS_PRECIP_INCHES;
+// MISCELLANEOUS MESSAGES
+   const char *TXT_UNKNOWN;
 };
 
 #endif   // _DRAW_OWM_H_
