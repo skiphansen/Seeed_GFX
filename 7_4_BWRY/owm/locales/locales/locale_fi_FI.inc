@@ -60,8 +60,7 @@ const char *LC_MON[12]     = {"Tammikuu",  "Helmikuu",   "Maaliskuu",   "Huhtiku
                                "Toukokuu", "Kes\xE4kuu", "Hein\xE4kuu", "Elokuu",
                                "Syyskuu",  "Lokakuu",    "Marraskuu",   "Joulukuu"};
 // ABMON_{1-12}            abbreviated name of the n-th month of the year
-const char *LC_ABMON[12]   = {"Tammi",   "Helmi", "Maalis", "Huhti", "Touko",  "Kes\xE4",
-                              "Hein\xE4", "Elo",  "Syys",   "Loka",  "Marras", "Joulu"};
+const char *LC_ABMON[12]   = {"Tammi",   "Helmi", "Maalis", "Huhti", "Touko",  "Kes\xE4","Hein\xE4", "Elo",  "Syys",   "Loka",  "Marras", "Joulu"};
 // ERA                     era description segments
 const char *LC_ERA         = "";
 // ERA_D_FMT               era date format string

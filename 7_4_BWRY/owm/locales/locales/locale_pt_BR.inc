@@ -59,8 +59,7 @@ const char *LC_MON[12]     = {"Janeiro",   "Fevereiro", "Mar\347o", "Abril",
                               "Maio",      "Junho",     "Julho",    "Agosto",
                               "Setembro",  "Outubro",   "Novembro", "Dezembro"};
 // ABMON_{1-12}            abbreviated name of the n-th month of the year
-const char *LC_ABMON[12]   = {"Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-                              "Jul", "Ago", "Set", "Out", "Nov", "Dez"};
+const char *LC_ABMON[12]   = {"Jan", "Fev", "Mar", "Abr", "Mai", "Jun","Jul", "Ago", "Set", "Out", "Nov", "Dez"};
 // ERA                     era description segments
 const char *LC_ERA         = "";
 // ERA_D_FMT               era date format string

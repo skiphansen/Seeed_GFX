@@ -59,8 +59,7 @@ const char *LC_MON[12]     = {"Jaanuar",    "Veebruar", "M\xE4rts", "Aprill",
                                "Mai",       "Juuni",    "Juuli",    "August",
                                "September", "Oktoober", "November", "Detsember"};
 // ABMON_{1-12}            abbreviated name of the n-th month of the year
-const char *LC_ABMON[12]   = {"Jaan",  "Veebr", "M\xE4rts", "Apr", "Mai", "Juuni",
-                              "Juuli", "Aug",   "Sept",     "Okt", "Nov", "Dets"};
+const char *LC_ABMON[12]   = {"Jaan",  "Veebr", "M\xE4rts", "Apr", "Mai", "Juuni","Juuli", "Aug",   "Sept",     "Okt", "Nov", "Dets"};
 // ERA                     era description segments
 const char *LC_ERA         = "";
 // ERA_D_FMT               era date fort string
