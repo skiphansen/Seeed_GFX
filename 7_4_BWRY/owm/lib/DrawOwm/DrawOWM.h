@@ -137,6 +137,80 @@ typedef struct {
    int Rssi;
 } OwmConfig;
 
+typedef struct {
+   const char *LC_DAY[7];
+   const char *LC_ABDAY[7];
+   const char *LC_MON[12];
+   const char *LC_ABMON[12];
+   const char *LC_D_T_FMT;
+   const char *LC_D_FMT;
+   const char *LC_T_FMT;
+   const char *LC_T_FMT_AMPM;
+   const char *LC_AM_STR;
+   const char *LC_PM_STR;
+   const char *LC_ERA;
+   const char *LC_ERA_D_FMT;
+   const char *LC_ERA_D_T_FMT;
+   const char *LC_ERA_T_FMT;
+   const char *TXT_UNKNOWN;
+   const char *TXT_FEELS_LIKE;
+   const char *TXT_SUNRISE;
+   const char *TXT_SUNSET;
+   const char *TXT_MOONRISE;
+   const char *TXT_MOONSET;
+   const char *TXT_WIND;
+   const char *TXT_HUMIDITY;
+   const char *TXT_UV_INDEX;
+   const char *TXT_PRESSURE;
+   const char *TXT_AIR_QUALITY;
+   const char *TXT_AIR_POLLUTION;
+   const char *TXT_VISIBILITY;
+   const char *TXT_INDOOR_TEMPERATURE;
+   const char *TXT_INDOOR_HUMIDITY;
+   const char *TXT_DEWPOINT;
+   const char *TXT_MOONPHASE;
+   const char *TXT_NEW_MOON;
+   const char *TXT_WAXING_CRESCENT;
+   const char *TXT_FIRST_QUARTER;
+   const char *TXT_WAXING_GIBBOUS;
+   const char *TXT_FULL_MOON;
+   const char *TXT_WANING_GIBBOUS;
+   const char *TXT_THIRD_QUARTER;
+   const char *TXT_WANING_CRESCENT;
+   const char *TXT_UV_LOW;
+   const char *TXT_UV_MODERATE;
+   const char *TXT_UV_HIGH;
+   const char *TXT_UV_VERY_HIGH;
+   const char *TXT_UV_EXTREME;
+   const char *TXT_WIFI_EXCELLENT;
+   const char *TXT_WIFI_GOOD;
+   const char *TXT_WIFI_FAIR;
+   const char *TXT_WIFI_WEAK;
+   const char *TXT_WIFI_NO_CONNECTION;
+   const char *TXT_UNITS_TEMP_KELVIN;
+   const char *TXT_UNITS_TEMP_CELSIUS;
+   const char *TXT_UNITS_TEMP_FAHRENHEIT;
+   const char *TXT_UNITS_SPEED_METERSPERSECOND;
+   const char *TXT_UNITS_SPEED_FEETPERSECOND;
+   const char *TXT_UNITS_SPEED_KILOMETERSPERHOUR;
+   const char *TXT_UNITS_SPEED_MILESPERHOUR;
+   const char *TXT_UNITS_SPEED_KNOTS;
+   const char *TXT_UNITS_SPEED_BEAUFORT;
+   const char *TXT_UNITS_PRES_HECTOPASCALS;
+   const char *TXT_UNITS_PRES_PASCALS;
+   const char *TXT_UNITS_PRES_MILLIMETERSOFMERCURY;
+   const char *TXT_UNITS_PRES_INCHESOFMERCURY;
+   const char *TXT_UNITS_PRES_MILLIBARS;
+   const char *TXT_UNITS_PRES_ATMOSPHERES;
+   const char *TXT_UNITS_PRES_GRAMSPERSQUARECENTIMETER;
+   const char *TXT_UNITS_PRES_POUNDSPERSQUAREINCH;
+   const char *TXT_UNITS_DIST_KILOMETERS;
+   const char *TXT_UNITS_DIST_MILES;
+   const char *TXT_UNITS_PRECIP_MILLIMETERS;
+   const char *TXT_UNITS_PRECIP_CENTIMETERS;
+   const char *TXT_UNITS_PRECIP_INCHES;
+} LocaleStrings_t;
+
 class DrawOWM {
 public:
 #ifdef SEEED_GFX
@@ -144,6 +218,7 @@ public:
 #else
    DrawOWM(TFT_eSprite &spr,OwmConfig &Config);
 #endif
+   void SetLocale(LocaleStrings_t *pStrings);
    void DrawIt();
 
 private:
