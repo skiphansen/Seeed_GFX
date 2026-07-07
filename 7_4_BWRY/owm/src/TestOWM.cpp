@@ -149,10 +149,53 @@ void setup()
    LOG("Owm test\n");
 
    while (true) {
+      int c = 0;
+      LOG(" 1: 400 x 300 - English\n");
+      LOG(" 2: 640 x 384 - English\n");
+      LOG(" 3: 800 x 480 - English\n");
+      LOG(" 4: 400 x 300 - German\n");
+      LOG(" 5: 640 x 384 - German\n");
+      LOG(" 6: 800 x 480 - German\n");
       LOG("Press a key to continue\n");
       while (!Serial.available());
       while (Serial.available()) {
-         Serial.read();
+         c = Serial.read();
+      }
+
+      switch(c) {
+         case '1':
+            Config.DisplayFormat = FORMAT_400X300;
+            Config.bMetric = false;
+            break;
+
+         case '2':
+            Config.DisplayFormat = FORMAT_640X384;
+            Config.bMetric = false;
+            break;
+
+         case '3':
+            Config.DisplayFormat = FORMAT_800X480;
+            Config.bMetric = false;
+            break;
+
+         case '4':
+            Config.DisplayFormat = FORMAT_400X300;
+            Config.bMetric = true;
+            break;
+
+         case '5':
+            Config.DisplayFormat = FORMAT_640X384;
+            Config.bMetric = true;
+            break;
+
+         case '6':
+            Config.DisplayFormat = FORMAT_800X480;
+            Config.bMetric = true;
+            break;
+
+         default:
+            LOG("Invalid option\n");
+            continue;
       }
       Config.WindSpeed = Config.bMetric ? UNITS_SPEED_KILOMETERSPERHOUR : 
                      UNITS_SPEED_MILESPERHOUR;
@@ -263,7 +306,7 @@ void setup()
       }
 
       LOG("Updating %s res display in %s mode.\n",
-          FormatDesc,Config.bMetric ? "metric" : "english");
+          FormatDesc,Config.bMetric ? "metric / German" : "english");
 
       class DrawOWM *owm = new DrawOWM(epaper,Config);
       if(Config.bMetric) {
@@ -303,24 +346,6 @@ void setup()
       owm->DrawIt();
       delete owm;
       epaper.update(); // update the display
-  // setup Config for next screen
-      Config.bMetric = !Config.bMetric;
-
-      if(Config.bMetric) {
-         switch(Config.DisplayFormat) {
-            case FORMAT_400X300:
-               Config.DisplayFormat = FORMAT_640X384;
-               break;
-
-            case FORMAT_640X384:
-               Config.DisplayFormat = FORMAT_800X480;
-               break;
-
-            case FORMAT_800X480:
-               Config.DisplayFormat = FORMAT_400X300;
-               break;
-         }
-      }
    }
 }
 
