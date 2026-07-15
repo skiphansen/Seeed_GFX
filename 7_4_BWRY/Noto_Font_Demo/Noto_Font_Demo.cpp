@@ -58,7 +58,6 @@
 */
 
 #include "TFT_eSPI.h"
-#include "NotoSans_Bold.h"
 #include "OpenFontRender.h"
 
 #define ENABLE_LOGGING  1
@@ -70,7 +69,14 @@
 #endif
 
 
-#define TTF_FONT NotoSans_Bold // The font is referenced with the array name
+// The font is referenced with the array name
+#if 0
+   #include "NotoSans_Bold.h"
+   #define TTF_FONT NotoSans_Bold
+#else
+   #define TTF_FONT FreeSans_utf8
+   #include "FreeSans-utf8.h"
+#endif
 OpenFontRender ofr;
 
 TFT_eSPI tft;
@@ -99,38 +105,45 @@ void setup()
   epaper.setRotation(1);
 
   ofr.setDrawer(epaper); // Link drawing object to epaper instance (so font will be rendered on TFT)
+  ofr.setSerial(Serial);	  // Need to print render library message
+  ofr.showFreeTypeVersion(); // print FreeType version
+  ofr.setDebugLevel(OFR_DEBUG);
 }
 
 void loop() {
   // epaper.fillScreen(TFT_BLACK);
+   FT_Error Err;
   
   ofr.setFontColor(TFT_BLACK,TFT_WHITE);
 
-  // Load the font and check it can be read OK
-  if (ofr.loadFont(TTF_FONT, sizeof(TTF_FONT))) {
-    LOG("Initialise error\n");
-    return;
-  }
+  do {
+     // Load the font and check it can be read OK
+     if(( Err = ofr.loadFont(TTF_FONT, sizeof(TTF_FONT)))) {
+       LOG("Initialise error %d\n",Err);
+       break;
+     }
 
-  // Set the cursor to top left
-  int32_t y = 0;
-  ofr.setCursor(0,y);
-
-  // A neat feature is that line spacing can be tightend up (by a factor of 0.7 here)
-  ofr.setLineSpaceRatio(0.7);
-
-  for (uint16_t font_size = 5; font_size < 60; font_size += 5) {
+     // Set the cursor to top left
+     int32_t y = 0;
      ofr.setCursor(0,y);
-     ofr.setFontSize(font_size);
-     LOG("Cursor @ %d,%d font_size %d\n",ofr.getCursorX(),ofr.getCursorY(),
-         font_size);
-    ofr.printf("Hello World\n");
-    LOG("Cursor now @ %d,%d\n",ofr.getCursorX(),ofr.getCursorY());
-    y += font_size;
-  }
 
-  // Unload font
-  ofr.unloadFont();
-  epaper.update(); // update the display
+     // A neat feature is that line spacing can be tightend up (by a factor of 0.7 here)
+     ofr.setLineSpaceRatio(0.7);
+
+     for (uint16_t font_size = 5; font_size < 60; font_size += 5) {
+        ofr.setCursor(0,y);
+        ofr.setFontSize(font_size);
+        LOG("Cursor @ %d,%d font_size %d\n",ofr.getCursorX(),ofr.getCursorY(),
+            font_size);
+       ofr.printf("Hello World\n");
+       LOG("Cursor now @ %d,%d\n",ofr.getCursorX(),ofr.getCursorY());
+       y += font_size;
+     }
+
+     // Unload font
+     ofr.unloadFont();
+     epaper.update(); // update the display
+
+  } while(false);
   while(1)  delay(5000);
 }
