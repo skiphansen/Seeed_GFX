@@ -18,6 +18,14 @@ Here is the 6 colors you can display:
 #include <DrawOWM.h>
 #include "owm_response.h"
 
+#define TEST_TTF
+#ifdef TEST_TTF
+   #include <FS.h>
+   using namespace fs;
+   #include <truetype.h>
+   #include "LittleFS.h"
+#endif
+
 #define ENABLE_LOGGING  1
 #if ENABLE_LOGGING && __has_include("logging.h") 
 #include "logging.h"
@@ -111,11 +119,11 @@ const LookupTbl_t LookupTbl[] = {
    {NULL}
 };
 
-
 void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height);
 
 EPaper epaper;
 
+#ifndef TEST_TTF
 void setup() 
 {
    OwmConfig Config;
@@ -145,7 +153,6 @@ void setup()
 
    while (!Serial);
    delay(250);
-
    LOG("Owm test\n");
 
    while (true) {
@@ -162,6 +169,7 @@ void setup()
          c = Serial.read();
       }
 
+      Config.bDisplayAlerts = false;
       switch(c) {
          case '1':
             Config.DisplayFormat = FORMAT_400X300;
@@ -171,11 +179,13 @@ void setup()
          case '2':
             Config.DisplayFormat = FORMAT_640X384;
             Config.bMetric = false;
+            Config.bDisplayAlerts = true;
             break;
 
          case '3':
             Config.DisplayFormat = FORMAT_800X480;
             Config.bMetric = false;
+            Config.bDisplayAlerts = true;
             break;
 
          case '4':
@@ -208,8 +218,6 @@ void setup()
       Config.PressureType = Config.bMetric ? UNITS_PRES_MILLIBARS :
                                          UNITS_PRES_INCHESOFMERCURY;
 
-      Config.bDisplayAlerts = Config.bMetric ? false : true;
-      Config.bDisplayAlerts = Config.bMetric ? false : true;
       switch(Config.DisplayFormat) {
          case FORMAT_800X480:
             Config.DisplayWidth    = 800;
@@ -308,7 +316,7 @@ void setup()
       LOG("Updating %s res display in %s mode.\n",
           FormatDesc,Config.bMetric ? "metric / German" : "english");
 
-      class DrawOWM *owm = new DrawOWM(epaper,Config);
+      class DrawOWM *owm = epaper. DrawOWM(epaper,Config);
       if(Config.bMetric) {
          JsonDocument filter;
          int Language = 2;
@@ -348,6 +356,78 @@ void setup()
       epaper.update(); // update the display
    }
 }
+#else
+void setup() 
+{
+   Serial.begin(115200);
+   while (!Serial);
+   delay(250);
+
+   uint8_t Err;
+   LittleFSFS LittleFS;
+
+   epaper.begin();
+// Work around bug in Seeed TFT_eSPI library, fillScreen() doesn't handle
+// rotation correctly.
+   epaper.setRotation(0);
+   epaper.fillScreen(TFT_WHITE);
+   epaper.setRotation(1);
+
+   int16_t height = epaper.width();
+   int16_t width = epaper.height();
+
+   while (!Serial.available());
+   while (Serial.available()) {
+      Serial.read();
+   }
+
+   LOG("TrueType font test\n");
+
+   truetypeClass truetype = truetypeClass();
+   void *framebuffer = epaper.getPointer();
+   LOG("framebuffer %p\n",framebuffer);
+   truetype.setFramebuffer(width,height,epaper.getColorDepth(), static_cast<uint8_t *>(framebuffer));
+   LittleFS.begin();
+   File fontFile = LittleFS.open("/FreeSans-utf8.ttf","r");
+
+   if((Err = truetype.setTtfFile(fontFile)) == 0) {
+      LOG("setTtfFile returned %d\n",Err);
+   }
+   truetype.setCharacterSize(32);
+   truetype.setCharacterSpacing(0,0);
+   truetype.setTextColor(TFT_WHITE,TFT_BLACK);
+   truetype.setTextRotation(90);
+   truetype.setTextBoundary(0,height,width);
+   truetype.textDraw(0,0,"TrueType Test");
+   truetype.end();
+
+   fontFile = LittleFS.open("/weathericons.ttf","r");
+
+   if((Err = truetype.setTtfFile(fontFile)) == 0) {
+      LOG("setTtfFile returned %d\n",Err);
+   }
+   truetype.setCharacterSize(32);
+   truetype.setCharacterSpacing(0,0);
+   truetype.setTextColor(TFT_WHITE,TFT_BLACK);
+   truetype.setTextRotation(90);
+   truetype.setTextBoundary(0,height,width);
+   wchar_t Icons[33];
+   wchar_t Icon = 0xf000;
+   int16_t y = 32;
+
+   while(Icon <= 0xf0eb && y < (640 - 32)) {
+      for(int i = 0; i < 16; i++) {
+         Icons[i] = Icon++;
+      }
+      Icons[16] = '\0';
+      truetype.textDraw(0,y,Icons);
+      y += 32;
+   }
+   truetype.end();
+   LittleFS.end();
+   epaper.update(); // update the display
+}
+#endif
 
 void loop()
 {
