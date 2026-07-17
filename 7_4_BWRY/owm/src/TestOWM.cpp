@@ -127,7 +127,6 @@ void setup()
 {
    Serial.begin(115200);
    LittleFS.begin();
-   epaper.begin();
 
    setenv("TZ", "PST8PDT", 1);
    tzset();
@@ -424,13 +423,13 @@ void TestTrueType()
       y += 32;
    }
    truetype.end();
-   epaper.update(); // update the display
 }
 
 void ClearScreen()
 {
 // Work around bug in Seeed TFT_eSPI library, fillScreen() doesn't handle
 // rotation correctly.
+   epaper.begin();
    epaper.setRotation(0);
    epaper.fillScreen(TFT_WHITE);
    epaper.setRotation(1);
