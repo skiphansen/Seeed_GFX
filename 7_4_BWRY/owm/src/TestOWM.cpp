@@ -118,7 +118,7 @@ const LookupTbl_t LookupTbl[] = {
 
 void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height);
 void OwmDrawTest(int c);
-void TestTrueType(void);
+void TestTrueType(int c);
 void ClearScreen(void);
 
 EPaper epaper;
@@ -136,7 +136,9 @@ void setup()
 
    while (true) {
       int c = 0;
+      LOG_RAW(" b: Battery Icon test\n");
       LOG_RAW(" t: TrueType test\n");
+      LOG_RAW(" T: 196 x 196 Icon test\n");
       LOG_RAW(" 1: 400 x 300 - English\n");
       LOG_RAW(" 2: 640 x 384 - English\n");
       LOG_RAW(" 3: 800 x 480 - English\n");
@@ -160,7 +162,9 @@ void setup()
             break;
 
          case 't':
-            TestTrueType();
+         case 'T':
+         case 'b':
+            TestTrueType(c);
             break;
 
          default:
@@ -374,19 +378,24 @@ void OwmDrawTest(int c)
 }
 
 
-void TestTrueType() 
+void TestTrueType(int c)
 {
    uint8_t Err;
-
-   LOG("TrueType font test\n");
+   int16_t y = 0;
+   int16_t x = 0;
+   int16_t y1;
+   int16_t x1;
 
    ClearScreen();
    int16_t height = epaper.width();
    int16_t width = epaper.height();
    truetypeClass truetype = truetypeClass();
    void *framebuffer = epaper.getPointer();
-   LOG("framebuffer %p\n",framebuffer);
-   truetype.setFramebuffer(width,height,epaper.getColorDepth(), static_cast<uint8_t *>(framebuffer));
+   truetype.setFramebuffer(width,height,epaper.getColorDepth(),
+                           static_cast<uint8_t *>(framebuffer));
+   const char* IconPath = c == 'b' ? "/fonts/owm_icons.ttf" : 
+                                     "/fonts/weathericons.ttf";
+
    File fontFile = LittleFS.open("/fonts/FreeSans-utf8.ttf","r");
 
    if((Err = truetype.setTtfFile(fontFile)) == 0) {
@@ -397,30 +406,109 @@ void TestTrueType()
    truetype.setTextColor(TFT_WHITE,TFT_BLACK);
    truetype.setTextRotation(90);
    truetype.setTextBoundary(0,height,width);
-   truetype.textDraw(0,0,"TrueType Test");
-   truetype.end();
-
-   fontFile = LittleFS.open("/fonts/weathericons.ttf","r");
-
+   truetype.textDraw(x,y,"TrueType Test");
+   fontFile = LittleFS.open(IconPath,"r");
    if((Err = truetype.setTtfFile(fontFile)) == 0) {
       LOG("setTtfFile returned %d\n",Err);
    }
-   truetype.setCharacterSize(32);
-   truetype.setCharacterSpacing(0,0);
-   truetype.setTextColor(TFT_WHITE,TFT_BLACK);
-   truetype.setTextRotation(90);
-   truetype.setTextBoundary(0,height,width);
-   wchar_t Icons[33];
-   wchar_t Icon = 0xf000;
-   int16_t y = 32;
+   y += 32;
 
-   while(Icon <= 0xf0eb && y < (640 - 32)) {
-      for(int i = 0; i < 16; i++) {
-         Icons[i] = Icon++;
+   wchar_t Icons[33];
+   if(c == 't') {
+      wchar_t Icon = 0xf000;
+      int i = 0;
+
+      LOG("TrueType font test\n");
+
+      while(Icon <= 0xf0eb && y < (480 - 32)) {
+         for(i = 0; i < 16; i++) {
+            Icons[i] = Icon++;
+         }
+         Icons[i] = 0;
+         truetype.textDraw(x,y,Icons);
+         y += 32;
       }
-      Icons[16] = '\0';
-      truetype.textDraw(0,y,Icons);
-      y += 32;
+      if(i > 0) {
+         Icons[i] = 0;
+         truetype.textDraw(x,y,Icons);
+         y += 32;
+      }
+   }
+   else if(c == 'T') {
+      LOG("196 x 196 TrueType weather icon test\n");
+      Icons[0] = 0xf00c;
+      Icons[1] = 0;
+      uint16_t Size = 196;
+      uint16_t ScalledSize = (Size * 1000) / 1241;
+      truetype.setCharacterSize(ScalledSize);
+      truetype.textDraw(200,y,Icons);
+      epaper.drawLine(200,y,200 + Size,y,TFT_RED); // top
+      epaper.drawLine(200,32+Size,200 + Size,y + Size,TFT_RED); // bottom
+      epaper.drawLine(200,32,200,y + Size,TFT_RED); // left
+      epaper.drawLine(200 + Size,y,200 + Size, y + Size,TFT_RED);   // right
+      LOG("Size %d, ScalledSize %d, getStringWidth %d\n",
+          Size,ScalledSize,truetype.getStringWidth(Icons));
+   }
+   else if(c == 'b') {
+      LOG_RAW("Battery Icon test\n");
+      wchar_t BattIcons[] = {
+      // battery_*
+         0xebdc,0xebd9,0xebe0,0xebdd,0xebe2,0xebd4,0xebd2,0xe1a4, 
+      // visibility
+         0xe8f4,
+         0
+      };
+      wchar_t Temp[2] = {0,0};
+
+   // natural rotation, just send all icons at once
+      truetype.setTextRotation(90);
+      truetype.setCharacterSize(64);
+      truetype.textDraw(0,y,BattIcons);
+      y += 65; // one pixel space between lines
+
+   // natural rotation rotated by 180 degrees, x & y positions
+   // must be adjusted for the rotation and x must be advanced
+   // for each character
+      truetype.setTextRotation(90 + 180);
+      y1 = 479 - 64 - y;
+      Temp[0] = BattIcons[0];
+      x1 = 799 - truetype.getStringWidth(Temp);
+   // not natural rotation, must icons one at a time 
+      for(int i = 0; BattIcons[i] != 0; i++) {
+         Temp[0] = BattIcons[i];
+         truetype.textDraw(x1,y1,Temp);
+         x1 -= truetype.getStringWidth(Temp);
+      }
+      y += 65; // one pixel space between lines
+
+   // natural rotation rotated by 90 degrees, x & y positions
+   // must be adjusted for the rotation and x must be advanced
+   // for each character.  Note x & y are swapped 
+      truetype.setTextRotation(90 + 90);
+      Temp[0] = BattIcons[0];
+      x1 = 799 - truetype.getStringWidth(Temp);
+      truetype.setTextBoundary(0,width,height);
+      for(int i = 0; BattIcons[i] != 0; i++) {
+         Temp[0] = BattIcons[i];
+         truetype.textDraw(y,x1,Temp);
+         x1 -= truetype.getStringWidth(Temp);
+      }
+      y += 65; // one pixel space between lines
+
+   // natural rotation rotated by 270 degrees, x & y positions
+   // must be adjusted for the rotation and x must be advanced
+   // for each character.  Note x & y are swapped 
+
+      truetype.setTextRotation(0);
+      Temp[0] = BattIcons[0];
+      x1 = 0;
+      y1 = 479 - 64 - y;
+      truetype.setTextBoundary(0,width,height);
+      for(int i = 0; BattIcons[i] != 0; i++) {
+         Temp[0] = BattIcons[i];
+         truetype.textDraw(y1,x1,Temp);
+         x1 += truetype.getStringWidth(Temp);
+      }
    }
    truetype.end();
 }
