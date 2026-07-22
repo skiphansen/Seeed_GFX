@@ -237,6 +237,7 @@ uint32_t truetypeClass::calculateCheckSum(uint32_t offset, uint32_t length) {
 int truetypeClass::readTableDirectory(int checkCheckSum) {
     ttfSeek(numTablesPos);
     numTables = getUInt16t();
+    LOG("numTables %d\n",numTables);
     table = (ttTable_t *)malloc(sizeof(ttTable_t) * numTables);
     ttfSeek(tablePos);
     for (int i = 0; i < numTables; i++) {
@@ -247,6 +248,7 @@ int truetypeClass::readTableDirectory(int checkCheckSum) {
         table[i].checkSum = getUInt32t();
         table[i].offset = getUInt32t();
         table[i].length = getUInt32t();
+        LOG("%s %d entries @ 0x%x\n",table[i].name,table[i].length,table[i].offset);
     }
 
     if (checkCheckSum) {
@@ -385,14 +387,27 @@ uint16_t truetypeClass::codeToGlyphId(uint16_t _code) {
     return glyphId;
 }
 
-uint8_t truetypeClass::readHhea() {
-    if (seekToTable("hhea") == 0) {
-        ascender = yMax;
-        return 0;
-    }
-    getUInt32t();
-    ascender = getInt16t();
-    return 1;
+
+uint8_t truetypeClass::readHhea() 
+{
+   uint32_t hhea_pos = seekToTable("hhea");
+   if(hhea_pos == 0) {
+      LOG("header hhea not found\n");
+      ascender = yMax;
+      return 0;
+   }
+   LOG("hhea header @ offset 0x%x\n",hhea_pos);
+   uint32_t u32Offset = hhea_pos + offsetof(ttHhea_t,ascent);
+   LOG("hhea.ascender @ offset 0x%x\n",u32Offset);
+   ttfSeek(u32Offset);
+   ascender = getInt16t();
+   LOG("ascender %d\n",ascender);
+   u32Offset = hhea_pos + offsetof(ttHhea_t,numOfLongHorMetrics);
+   LOG("hhea.numOfLongHorMetrics @ offset 0x%x\n",u32Offset);
+   ttfSeek(u32Offset);
+   numOfLongHorMetrics = getUInt16t();
+   LOG("numOfLongHorMetrics %d\n",numOfLongHorMetrics);
+   return 1;
 }
 
 #ifdef ENABLEKERNING
@@ -469,20 +484,61 @@ uint8_t truetypeClass::readHMetric() {
     }
 
     hmtxTablePos = ttfPosition();
+    LOG("hmtx table @ 0x%x\n",hmtxTablePos);
     return 1;
 }
 
-ttHMetric_t truetypeClass::getHMetric(uint16_t _code) {
-    ttHMetric_t result;
-    result.advanceWidth = 0;
+/* 
+This code is incomplete because it only handles the Glyph ID < numberOfHMetrics 
+case.
+ 
+The hmtx table pairs an advance width and a left side bearing for every 
+single glyph.  To save file space, fonts that contain multiple glyphs with 
+the exact same width (like monospaced fonts) utilize numberOfHMetrics to 
+truncate the table. 
+ 
+If Glyph ID < numberOfHMetrics: 
+   The hmtx table assigns both an advance width and a left side bearing to
+   the glyph. 
+ 
+If Glyph ID >= numberOfHMetrics: 
+   The hmtx table only provides the left side bearing.
+   The advance width for all remaining glyphs is inherited from the very last 
+   entry in the numberOfHMetrics array. 
+*/ 
+void truetypeClass::getHMetric(uint16_t _code,ttHMetric_t *Ret) 
+{
+// Get advanceWidth
+   if (_code < numOfLongHorMetrics) {
+      LOG("%d < numOfLongHorMetrics\n",_code);
+      ttfSeek(hmtxTablePos + (_code * 4));
+      Ret->advanceWidth = getUInt16t();
+      Ret->leftSideBearing = getInt16t();
+   }
+   else {
+      uint32_t offset = hmtxTablePos + ((numOfLongHorMetrics - 1) * 4);
+      LOG("%d >= numOfLongHorMetrics\n",_code);
+      if (advanceWidthLast < 0) {
+      // Read advanceWidthLast of last entry in table
+         LOG("last entry @ offset 0x%x\n",offset);
+         ttfSeek(offset);
+         advanceWidthLast = getUInt16t();
+         LOG("Set advanceWidthLast to %d\n",advanceWidthLast);
+      }
+      Ret->advanceWidth = advanceWidthLast;
+      offset += (_code - numOfLongHorMetrics) * 4;
+      ttfSeek(offset);
+      LOG("leftSideBearing @ offset 0x%x\n",offset);
+      Ret->leftSideBearing = getInt16t();
+   }
 
-    ttfSeek(hmtxTablePos + (_code * 4));
-    result.advanceWidth = getUInt16t();
-    result.leftSideBearing = getInt16t();
+   LOG("code 0x%x advanceWidth %d. leftSideBearing %d\n",
+       _code,Ret->advanceWidth,Ret->leftSideBearing);
 
-    result.advanceWidth = (result.advanceWidth * characterSize) / headTable.unitsPerEm;
-    result.leftSideBearing = (result.leftSideBearing * characterSize) / headTable.unitsPerEm;
-    return result;
+   Ret->advanceWidth = (Ret->advanceWidth * characterSize) / headTable.unitsPerEm;
+   Ret->leftSideBearing = (Ret->leftSideBearing * characterSize) / headTable.unitsPerEm;
+   LOG("code 0x%x leftSideBearing %d, advanceWidth %d, characterSize %d, unitsPerEm %d\n",
+       _code,Ret->leftSideBearing,Ret->advanceWidth,characterSize,headTable.unitsPerEm);
 }
 
 /* get glyph offset */
@@ -920,6 +976,7 @@ void truetypeClass::textDraw(int16_t _x, int16_t _y, const wchar_t _character[])
             prev_code = 0;
             _x += characterSize / 4;
             c++;
+            LOG("c %d moved cursor right by %d pixels\n",c,characterSize / 4);
             continue;
         }
 
@@ -937,13 +994,17 @@ void truetypeClass::textDraw(int16_t _x, int16_t _y, const wchar_t _character[])
 #endif
         prev_code = charCode;
 
-        ttHMetric_t hMetric = getHMetric(charCode);
+        ttHMetric_t hMetric ;
+        getHMetric(charCode,&hMetric);
 
         // Line breaks when reaching the edge of the display
+        LOG("c %d, x %d, advanceWidth %d, end_x %d\n",
+            c,_x,hMetric.advanceWidth,end_x);
         if (c > 0 && (hMetric.advanceWidth + _x) > end_x) {
             _x = start_x;
             _y += characterSize;
             if (_y > end_y) {
+               LOG("c %d, end_y %d\n",c,end_y);
                 break;
             }
         }
@@ -1023,9 +1084,11 @@ void truetypeClass::addPixel(int16_t _x, int16_t _y, uint16_t _colorCode) {
             _x = displayWidth - 1 - _y;
             _y = temp;
             break;
-        case 0:
-        default:
-            break;
+       case 0:
+          break;
+       default:
+          LOG("Invalid stringRotation %d\n",stringRotation);
+          break;
     }
 
     // out of range
@@ -1098,7 +1161,9 @@ uint16_t truetypeClass::getStringWidth(const wchar_t _character[]) {
 #endif
         prev_code = code;
 
-        ttHMetric_t hMetric = getHMetric(code);
+        ttHMetric_t hMetric;
+        getHMetric(code,&hMetric);
+
         output += hMetric.advanceWidth;
         c++;
     }
@@ -1183,6 +1248,7 @@ void truetypeClass::freeEndPoints() {
 /* seek to the first position of the specified table name */
 uint32_t truetypeClass::seekToTable(const char *name) {
     for (uint32_t i = 0; i < numTables; i++) {
+       LOG("%s @ 0x%x\n",table[i].name,table[i].offset);
         if (strcmp(table[i].name, name) == 0) {
             ttfSeek(table[i].offset);
             return table[i].offset;

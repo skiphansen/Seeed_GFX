@@ -155,6 +155,28 @@ typedef struct {
     uint8_t up;
 } ttWindIntersect_t;
 
+typedef struct {
+   uint32_t version;
+   int16_t  ascent;              // Distance from baseline of highest ascender
+   int16_t  descent;             //	Distance from baseline of lowest descender
+   int16_t  lineGap;             // typographic line gap
+   uint16_t	advanceWidthMax;     //	must be consistent with horizontal metrics
+   int16_t	minLeftSideBearing;  // must be consistent with horizontal metrics
+   int16_t	minRightSideBearing; // must be consistent with horizontal metrics
+   int16_t	xMaxExtent;          //	max(lsb + (xMax-xMin))
+   int16_t	caretSlopeRise;      //	used to calculate the slope of the caret 
+                                 // (rise/run) set to 1 for vertical caret
+   int16_t	caretSlopeRun;       // 0 for vertical
+   int16_t	caretOffset;	     // set value to 0 for non-slanted fonts
+   int16_t	reserved;	         // set value to 0
+   int16_t	reserved_1;	         // set value to 0
+   int16_t	reserved_2;	         // set value to 0
+   int16_t	reserved_3;	         // set value to 0
+   int16_t	metricDataFormat;	 // 0 for current format
+   uint16_t	numOfLongHorMetrics; // number of advance widths in metrics table 
+} ttHhea_t;
+
+
 class truetypeClass {
    public:
     truetypeClass();
@@ -192,7 +214,8 @@ class truetypeClass {
     uint8_t u8FileBuf[FILE_BUF_SIZE];  // Buffered reads from the file system
     uint32_t u32BufPosition;           // Current position in the buffer
     uint32_t iCurrentBufSize = 0;
-
+    uint16_t numOfLongHorMetrics;       // from hhea table
+    int advanceWidthLast;               // -1 if not set yet
     TTF_DRAWPIXEL *pfnDrawPixel = NULL;
 
     uint16_t charCode;
@@ -234,7 +257,7 @@ class truetypeClass {
     // hmtx. metric information for the horizontal layout each of the glyphs
     uint32_t hmtxTablePos = 0;
     uint8_t readHMetric();
-    ttHMetric_t getHMetric(uint16_t _code);
+    void getHMetric(uint16_t _code,ttHMetric_t *Result);
 
     // kerning.
     ttKernHeader_t kernHeader;
@@ -293,4 +316,3 @@ class truetypeClass {
     bool IsU8LaterByte(char _ch);
 };
 #endif
-
