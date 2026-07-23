@@ -22,6 +22,8 @@ Here is the 6 colors you can display:
 using namespace fs;
 #include <truetype.h>
 #include "LittleFS.h"
+#include "config.h"
+#include "TestData.h"
 
 #define ENABLE_LOGGING  1
 #if ENABLE_LOGGING && __has_include("logging.h") 
@@ -117,6 +119,7 @@ const LookupTbl_t LookupTbl[] = {
 };
 
 void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height);
+void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w, int16_t h, uint16_t color);
 void OwmDrawTest(int c);
 void TestTrueType(int c);
 void ClearScreen(void);
@@ -136,6 +139,7 @@ void setup()
 
    while (true) {
       int c = 0;
+      LOG_RAW(" a: Arrow Icon test\n");
       LOG_RAW(" b: Battery Icon test\n");
       LOG_RAW(" t: TrueType test\n");
       LOG_RAW(" T: 196 x 196 Icon test\n");
@@ -161,6 +165,7 @@ void setup()
             OwmDrawTest(c);
             break;
 
+         case 'a':
          case 't':
          case 'T':
          case 'b':
@@ -510,6 +515,23 @@ void TestTrueType(int c)
          x1 += truetype.getStringWidth(Temp);
       }
    }
+   else if(c == 'a') {
+#ifndef WIND_INDICATOR_ARROW
+      LOG_RAW("Can't run arrow Icon test, WIND_INDICATOR_ARROW is not defined\n");
+#else
+      LOG_RAW("Arrow Icon test\n");
+      extern const unsigned char *wind_direction_icon_arr[];
+      for(int i = 0; i < WIND_VALUES; i++) {
+         drawInvertedBitmap(x,y,wind_direction_icon_arr[i],24,24,TFT_BLACK);
+         x += 24;
+         if(x > 799) {
+            y += 25;
+            x = 0;
+         }
+      }
+#endif
+   }
+
    truetype.end();
 }
 
@@ -544,3 +566,26 @@ void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Heigh
    epaper.drawLine(xOffset - 1,yOffset - 1,
                    xOffset + Width + 1,yOffset - 1,TFT_BLACK); 
 }
+
+void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w, int16_t h, uint16_t color) 
+{
+// taken from Adafruit_GFX.cpp, modified
+   int16_t byteWidth = (w + 7) / 8; // Bitmap scanline pad = whole byte
+   uint8_t byte = 0;
+   for (int16_t j = 0; j < h; j++) {
+      for (int16_t i = 0; i < w; i++) {
+         if (i & 7) byte <<= 1;
+         else {
+#if defined(__AVR) || defined(ESP8266) || defined(ESP32)
+            byte = pgm_read_byte(&bitmap[j * byteWidth + i / 8]);
+#else
+            byte = bitmap[j * byteWidth + i / 8];
+#endif
+         }
+         if (!(byte & 0x80)) {
+            epaper.drawPixel(x + i, y + j, color);
+         }
+      }
+   }
+}
+
