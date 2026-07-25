@@ -61,7 +61,8 @@ def generate_html_mapping_sheet(mapping_data, ttf_filename, html_filename):
 </head>
 <body>
 
-    <h1>Font Layout Mapping Sheet</h1>
+    <h1>Layout Mapping Sheet for """
+    html_content += f"""{ttf_filename}</h1>
     <p class="subtitle">Generated dynamically from FontForge project</p>
 
     <div class="grid">
