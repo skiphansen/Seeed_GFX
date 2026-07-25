@@ -2,6 +2,8 @@
 
 # Written by Google's Gemini using just chrome
 
+# https://share.google/aimode/8rBPJvcerVY1kexiw
+
 # Conversation:
 # Initial Issue: You stated that an SVG looks different when viewed in 
 # FontForge compared to Inkscape.
@@ -45,6 +47,7 @@
 import psMat
 import os
 import re
+import generate_html_mapping_sheet
 
 def clean_raw_svg_text(svg_path, output_folder):
     """
@@ -76,94 +79,6 @@ def clean_raw_svg_text(svg_path, output_folder):
         f.write(cleaned_content)
         
     return cleaned_svg_path
-
-def generate_html_mapping_sheet(mapping_data, ttf_filename, html_filename="font_layout_map.html"):
-    """
-    Generates a beautifully styled standalone HTML layout map showcasing 
-    all processed icons, their names, and hex codes.
-    """
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Font Layout Mapping Sheet</title>
-    <style>
-        @font-face {{
-            font-family: 'MaterialCustomIcons';
-            src: url('{ttf_filename}') format('truetype');
-        }}
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f5f7;
-            color: #333;
-            padding: 40px;
-        }}
-        h1 {{ text-align: center; margin-bottom: 5px; color: #111; }}
-        .subtitle {{ text-align: center; color: #666; margin-bottom: 40px; }}
-        .grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }}
-        .card {{
-            background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }}
-        .card:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-        }}
-        .icon {{
-            font-family: 'MaterialCustomIcons';
-            font-size: 48px;
-            color: #1a73e8;
-            margin-bottom: 15px;
-            height: 50px;
-            line-height: 50px;
-        }}
-        .name {{
-            font-size: 14px;
-            font-weight: 600;
-            word-break: break-word;
-            margin-bottom: 5px;
-            color: #222;
-        }}
-        .hex {{
-            font-size: 12px;
-            color: #888;
-            font-family: monospace;
-        }}
-    </style>
-</head>
-<body>
-
-    <h1>Font Layout Mapping Sheet</h1>
-    <p class="subtitle">Generated dynamically from FontForge project</p>
-
-    <div class="grid">
-"""
-    for name, hex_code in mapping_data:
-        # Convert hex string safely to a browser-readable HTML entity reference
-        html_entity = f"&#x{hex_code[2:].upper()};"
-        html_content += f"""        <div class="card">
-            <div class="icon">{html_entity}</div>
-            <div class="name">{name}</div>
-            <div class="hex">{hex_code.upper()}</div>
-        </div>\n"""
-
-    html_content += """    </div>
-</body>
-</html>"""
-
-    with open(html_filename, 'w', encoding='utf-8') as f:
-        f.write(html_content)
-    print(f"Generated Layout Mapping Sheet at: {os.path.abspath(html_filename)}")
 
 
 def batch_import_svg_folder(input_folder, cleaned_svg_folder="cleaned_svgs", output_ttf_name="material_icons_batch.ttf", start_unicode=0xE000):
@@ -242,7 +157,7 @@ def batch_import_svg_folder(input_folder, cleaned_svg_folder="cleaned_svgs", out
     print(f"Successfully compiled icons into {output_ttf_name}.")
     
     # Generate the Layout Mapping sheet using our logged data
-    generate_html_mapping_sheet(mapping_records, output_ttf_name,cleaned_svg_folder + '/' + 'map.html')
+    generate_html_mapping_sheet.generate_html_mapping_sheet(mapping_records, output_ttf_name,cleaned_svg_folder + '/' + 'map.html')
 
 # --- EXECUTION ---
 if __name__ == "__main__":
