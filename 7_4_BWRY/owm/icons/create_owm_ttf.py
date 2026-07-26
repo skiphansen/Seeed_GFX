@@ -4,6 +4,7 @@ import fontforge
 import psMat
 import generate_html_mapping_sheet
 import os
+from fontTools.ttLib import TTFont
 
 name2unicode = {
 }
@@ -89,14 +90,6 @@ def create_ttf_from_svg():
         0xe1a4: "battery_full_90deg",
     }
 
-    
-    # Select all glyphs in the font
-    #font.selection.all()
-
-    offset_matrix = psMat.translate(-500,0)
-    # AutoWidth takes a spacing value (in em-units)
-    # Setting to 0 or negative em-size defaults to a standard built-in spacing
-    #font.autoWidth(0) 
     max_width = 0
     max_height = 0
 
@@ -114,7 +107,6 @@ def create_ttf_from_svg():
             svg_path = 'cleaned_material_svg/' + name + '.svg'
 
         glyph.importOutlines(svg_path)
-        glyph.left_side_bearing = 0
         #glyph.transform(offset_matrix)
         # 3. Determine the bounding box of the imported SVG 
         # (returns (xmin, ymin, xmax, ymax))
@@ -136,17 +128,22 @@ def create_ttf_from_svg():
 
         # 7. Apply the transformation and clean up overlaps
         glyph.transform((1, 0, 0, 1, shift_x, shift_y))
-        glyph.transform((1, 0, 0, 1, -500,0))
-        if "wind_direction_meteorological" in name:
-            glyph.width = -500
-        if "battery" in name:
-            glyph.width = -500
         glyph.removeOverlap()
+
         new_bounds = glyph.boundingBox()
         #print_bounds(name,bounds,new_bounds)
         #print(f'advancewidth {glyph.width}')
         width = round(bounds[2] - bounds[0])
         height = round(bounds[3] - bounds[1])
+        left_side_bearing = 1000.0 - ((bounds[2] - bounds[0]) // 2.0)
+        if 'wind_direction_meteorological' in name:
+            glyph.left_side_bearing = 250
+        else:
+            glyph.left_side_bearing = int(left_side_bearing)
+
+        # must reset width (advancewidth) since setting left_side_bearing changes it
+        glyph.width = 2000
+
         if max_width < width:
             max_width = width
         if max_height < height:
@@ -159,7 +156,6 @@ def create_ttf_from_svg():
     output_ttf_name = "owm_icons.ttf"
     font.generate(output_ttf_name)
     print("TTF font generated successfully!")
-
     generate_html_mapping_sheet.generate_html_mapping_sheet(mapping_records, output_ttf_name,'owm_icons_map.html')
 
 if __name__ == "__main__":
