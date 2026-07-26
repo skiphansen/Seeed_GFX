@@ -94,3 +94,4 @@ Temporary Items
 *.vtg
 *.vpwhist
 *.ttx
+__pycache__/

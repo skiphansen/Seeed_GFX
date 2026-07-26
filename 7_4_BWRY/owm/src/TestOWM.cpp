@@ -141,6 +141,8 @@ void setup()
       int c = 0;
       LOG_RAW(" a: Arrow Icon test\n");
       LOG_RAW(" b: Battery Icon test\n");
+      LOG_RAW(" o: owm_icons.ttf test\n");
+      LOG_RAW(" O: test compiled in TTF owm icons\n");
       LOG_RAW(" t: TrueType test\n");
       LOG_RAW(" T: 196 x 196 Icon test\n");
       LOG_RAW(" 1: 400 x 300 - English\n");
@@ -166,9 +168,12 @@ void setup()
             break;
 
          case 'a':
+         case 'A':
+         case 'b':
+         case 'o':
+         case 'O':
          case 't':
          case 'T':
-         case 'b':
             TestTrueType(c);
             break;
 
@@ -398,8 +403,6 @@ void TestTrueType(int c)
    void *framebuffer = epaper.getPointer();
    truetype.setFramebuffer(width,height,epaper.getColorDepth(),
                            static_cast<uint8_t *>(framebuffer));
-   const char* IconPath = c == 'b' ? "/fonts/owm_icons.ttf" : 
-                                     "/fonts/weathericons.ttf";
 
    File fontFile = LittleFS.open("/fonts/FreeSans-utf8.ttf","r");
 
@@ -412,9 +415,31 @@ void TestTrueType(int c)
    truetype.setTextRotation(90);
    truetype.setTextBoundary(0,height,width);
    truetype.textDraw(x,y,"TrueType Test");
-   fontFile = LittleFS.open(IconPath,"r");
-   if((Err = truetype.setTtfFile(fontFile)) == 0) {
-      LOG("setTtfFile returned %d\n",Err);
+
+   const char* IconPath = NULL;
+   switch(c) {
+      case 'b':
+      case 'a':
+      case 'A':
+      case 'o':
+         IconPath = "/fonts/owm_icons.ttf";
+         break;
+
+      case 't':
+         IconPath = "/fonts/weathericons.ttf";
+         break;
+   }
+
+   if(IconPath != NULL) {
+      fontFile = LittleFS.open(IconPath,"r");
+      if((Err = truetype.setTtfFile(fontFile)) == 0) {
+         LOG("setTtfFile returned %d\n",Err);
+      }
+   }
+   else {
+      if(!truetype.setTtfPointer(owm_icons,sizeof(owm_icons))) {
+         LOG("setTtfPointer failed\n");
+      }
    }
    y += 32;
 
@@ -515,12 +540,24 @@ void TestTrueType(int c)
          x1 += truetype.getStringWidth(Temp);
       }
    }
-   else if(c == 'a') {
-#ifndef WIND_INDICATOR_ARROW
-      LOG_RAW("Can't run arrow Icon test, WIND_INDICATOR_ARROW is not defined\n");
-#else
+   else if(c == 'a' || c == 'A') {
       LOG_RAW("Arrow Icon test\n");
-      extern const unsigned char *wind_direction_icon_arr[];
+      if(c == 'A') {
+      // dump bitmaped version of wind_direction_meteorological_0deg_24x24
+      // as ASCII
+         int index  = 0;
+         for(int i = 0; i < 24; i++) {
+            for(int j = 0; j < 3; j++) {
+               uint8_t Mask = 0x80;
+               uint8_t Value = wind_direction_meteorological_0deg_24x24[index++];
+               for(int k = 0; k < 8; k++) {
+                  printf("%c",(Value & Mask) == 0 ? '*' : ' ');
+                  Mask >>= 1;
+               }
+            }
+            printf("| line %d\n",i + 1);
+         }
+      }
       for(int i = 0; i < WIND_VALUES; i++) {
          drawInvertedBitmap(x,y,wind_direction_icon_arr[i],24,24,TFT_BLACK);
          x += 24;
@@ -529,7 +566,104 @@ void TestTrueType(int c)
             x = 0;
          }
       }
-#endif
+      x = 0;
+      y += 30;
+      wchar_t ArrowIcons[] = {
+         0xf0fe,  // wind_direction_meteorological_0deg
+         0xf105,  // wind_direction_meteorological_22_5deg
+         0xf10b,  // wind_direction_meteorological_45deg
+         0xf10d,  // wind_direction_meteorological_90deg
+         0xf10c,  // wind_direction_meteorological_67_5deg
+         0xf0ff,  // wind_direction_meteorological_112_5deg
+         0xf100,  // wind_direction_meteorological_135deg
+         0xf101,  // wind_direction_meteorological_157_5deg
+         0xf102,  // wind_direction_meteorological_180deg
+         0xf103,  // wind_direction_meteorological_202_5deg
+         0xf104,  // wind_direction_meteorological_225deg
+         0xf106,  // wind_direction_meteorological_247_5deg
+         0xf107,  // wind_direction_meteorological_270deg
+         0xf108,  // wind_direction_meteorological_292_5deg
+         0xf109,  // wind_direction_meteorological_315deg
+         0xf10a,  // wind_direction_meteorological_337_5deg
+         0
+      };
+      wchar_t Temp[2] = {0,0};
+
+      truetype.setCharacterSize(24);
+      for(int i = 0; ArrowIcons[i] != 0; i++) {
+         Temp[0] = ArrowIcons[i];
+         truetype.textDraw(x,y,Temp);
+         x += 24;
+         if(x > 799) {
+            y += 25;
+            x = 0;
+         }
+      }
+   }
+   else if(c == 'o' || c == 'O') {
+      if(c == 'o') {
+         LOG_RAW("testing owm_icons.ttf\n");
+      }
+      else {
+         LOG_RAW("testing compiled in TTF owm icons\n");
+      }
+      wchar_t OwmIcons[] = {
+         0xe1a4,  // battery_full_90deg
+         0xebd2,  // battery_6_bar_90deg
+         0xebd4,  // battery_5_bar_90deg
+         0xebd9,  // battery_1_bar_90deg
+         0xebdc,  // battery_0_bar_90deg
+         0xebdd,  // battery_3_bar_90deg
+         0xebe0,  // battery_2_bar_90deg
+         0xebe2,  // battery_4_bar_90deg
+         0xe4ca,  // wifi_1_bar
+         0xe4d9,  // wifi_2_bar
+         0xe63e,  // wifi
+         0xebe1,  // wifi_3_bar
+         0xf0f0,  // wifi_x
+         0xf0f1,  // air_filter
+         0xf0fa,  // error_icon
+         0xf0fb,  // house_humidity
+         0xf0fc,  // house_thermometer
+         0xf10e,  // biological_hazard_symbol
+         0xf10f,  // ionizing_radiation_symbol
+         0xf110,  // warning_icon
+         0xf0fe,  // wind_direction_meteorological_0deg
+         0xf0ff,  // wind_direction_meteorological_112_5deg
+         0xf100,  // wind_direction_meteorological_135deg
+         0xf101,  // wind_direction_meteorological_157_5deg
+         0xf102,  // wind_direction_meteorological_180deg
+         0xf103,  // wind_direction_meteorological_202_5deg
+         0xf104,  // wind_direction_meteorological_225deg
+         0xf105,  // wind_direction_meteorological_22_5deg
+         0xf106,  // wind_direction_meteorological_247_5deg
+         0xf107,  // wind_direction_meteorological_270deg
+         0xf108,  // wind_direction_meteorological_292_5deg
+         0xf109,  // wind_direction_meteorological_315deg
+         0xf10a,  // wind_direction_meteorological_337_5deg
+         0xf10b,  // wind_direction_meteorological_45deg
+         0xf10c,  // wind_direction_meteorological_67_5deg
+         0xf10d,  // wind_direction_meteorological_90deg
+         0
+      };
+      wchar_t Temp[2] = {0,0};
+
+      uint16_t Size = 48;
+      x = 0;
+      truetype.setCharacterSize(Size);
+      for(int i = 0; OwmIcons[i] != 0; i++) {
+         if( OwmIcons[i] == 0xf0fe) {
+            y += Size + 1;
+            x = 0;
+         }
+         Temp[0] = OwmIcons[i];
+         truetype.textDraw(x,y,Temp);
+         x += Size;
+         if(x > (799 - Size)) {
+            y += Size + 1;
+            x = 0;
+         }
+      }
    }
 
    truetype.end();
@@ -576,11 +710,7 @@ void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w,
       for (int16_t i = 0; i < w; i++) {
          if (i & 7) byte <<= 1;
          else {
-#if defined(__AVR) || defined(ESP8266) || defined(ESP32)
             byte = pgm_read_byte(&bitmap[j * byteWidth + i / 8]);
-#else
-            byte = bitmap[j * byteWidth + i / 8];
-#endif
          }
          if (!(byte & 0x80)) {
             epaper.drawPixel(x + i, y + j, color);

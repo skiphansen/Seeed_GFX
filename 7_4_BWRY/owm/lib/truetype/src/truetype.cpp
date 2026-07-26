@@ -53,7 +53,7 @@ void truetypeClass::setTtfDrawPixel(TTF_DRAWPIXEL *p) {
     pfnDrawPixel = p;
 }
 
-uint8_t truetypeClass::setTtfPointer(uint8_t *p, uint32_t u32Size, uint8_t _checkCheckSum, bool bF) {
+uint8_t truetypeClass::setTtfPointer(const uint8_t *p, uint32_t u32Size, uint8_t _checkCheckSum, bool bF) {
     pTTF = p;
     u32TTFSize = u32Size;
     bFlash = bF;
