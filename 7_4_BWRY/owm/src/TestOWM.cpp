@@ -117,6 +117,8 @@ const LookupTbl_t LookupTbl[] = {
    {"TXT_UNITS_PRECIP_INCHES",&Strings.TXT_UNITS_PRECIP_INCHES},
    {NULL}
 };
+bool bTestMoonSupport;
+bool bMetric;
 
 void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height);
 void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w, int16_t h, uint16_t color);
@@ -137,21 +139,24 @@ void setup()
    while (!Serial);
    delay(250);
 
+   bool bDisplayMenu = true;
    while (true) {
       int c = 0;
-      LOG_RAW(" a: Arrow Icon test\n");
-      LOG_RAW(" b: Battery Icon test\n");
-      LOG_RAW(" o: owm_icons.ttf test\n");
-      LOG_RAW(" O: test compiled in TTF owm icons\n");
-      LOG_RAW(" t: TrueType test\n");
-      LOG_RAW(" T: 196 x 196 Icon test\n");
-      LOG_RAW(" 1: 400 x 300 - English\n");
-      LOG_RAW(" 2: 640 x 384 - English\n");
-      LOG_RAW(" 3: 800 x 480 - English\n");
-      LOG_RAW(" 4: 400 x 300 - German\n");
-      LOG_RAW(" 5: 640 x 384 - German\n");
-      LOG_RAW(" 6: 800 x 480 - German\n\n");
-      LOG_RAW("Press a key to start a test\n");
+      if(bDisplayMenu) {
+         LOG_RAW(" 1: 400 x 300\n");
+         LOG_RAW(" 2: 640 x 384\n");
+         LOG_RAW(" 3: 800 x 480\n");
+         LOG_RAW(" a: Arrow Icon test\n");
+         LOG_RAW(" b: Battery Icon test\n");
+         LOG_RAW(" l: Toggle languate\n");
+         LOG_RAW(" m: Toggle moon data testing\n");
+         LOG_RAW(" o: owm_icons.ttf test\n");
+         LOG_RAW(" O: test compiled in TTF owm icons\n");
+         LOG_RAW(" t: TrueType test\n");
+         LOG_RAW(" T: 196 x 196 Icon test\n");
+         LOG_RAW("Press a key to start a test\n");
+      }
+      bDisplayMenu = true;
       while (!Serial.available());
       while (Serial.available()) {
          c = Serial.read();
@@ -161,9 +166,6 @@ void setup()
          case '1':
          case '2':
          case '3':
-         case '4':
-         case '5':
-         case '6':
             OwmDrawTest(c);
             break;
 
@@ -175,10 +177,22 @@ void setup()
          case 't':
          case 'T':
             TestTrueType(c);
-            break;
+
+         case 'l':
+            bMetric = !bMetric;
+            LOG_RAW("%s selected\n",bMetric ? "German" : "English");
+            bDisplayMenu = false;
+            continue;
+
+         case 'm':
+            bTestMoonSupport = !bTestMoonSupport;
+            LOG_RAW("%s moon support\n",bTestMoonSupport ? "Testing" : "Not testing");
+            bDisplayMenu = false;
+            continue;
 
          default:
-            LOG_RAW("\"%c\" is an invalid option\n\n",c);
+            LOG_RAW("Invalid option\n\n");
+            bDisplayMenu = true;
             continue;
       }
       epaper.update(); // update the display
@@ -202,7 +216,7 @@ void OwmDrawTest(int c)
    Config.inHumidity = NAN;
    Config.batteryVoltage = 2960;
    Config.Rssi = -59;
-   Config.bMetric = true;
+   Config.bMetric = bMetric; // also selects language
    Config.bLiPo = false;
    Config.DisplayFormat = FORMAT_400X300;
 //   Config.DisplayFormat = FORMAT_640X384;
@@ -223,23 +237,7 @@ void OwmDrawTest(int c)
 
       case '3':
          Config.DisplayFormat = FORMAT_800X480;
-         Config.bMetric = false;
          Config.bDisplayAlerts = true;
-         break;
-
-      case '4':
-         Config.DisplayFormat = FORMAT_400X300;
-         Config.bMetric = true;
-         break;
-
-      case '5':
-         Config.DisplayFormat = FORMAT_640X384;
-         Config.bMetric = true;
-         break;
-
-      case '6':
-         Config.DisplayFormat = FORMAT_800X480;
-         Config.bMetric = true;
          break;
 
       default:
@@ -256,64 +254,46 @@ void OwmDrawTest(int c)
    Config.PressureType = Config.bMetric ? UNITS_PRES_MILLIBARS :
                          UNITS_PRES_INCHESOFMERCURY;
 
-   switch (Config.DisplayFormat) {
+// First 4 positions when not in moon mode
+   Config.PosSunrise    = !bTestMoonSupport ? 0 : -1;
+   Config.PosSunset     = !bTestMoonSupport ? 1 : -1;
+   Config.PosWind       = !bTestMoonSupport ? 2 : -1;
+   Config.PosHumidity   = !bTestMoonSupport ? 3 : -1;
+
+// First 4 positions when in moon mode
+   Config.PosMoonrise   = bTestMoonSupport ? 0 : -1;
+   Config.PosMoonset    = bTestMoonSupport ? 1 : -1;
+   Config.PosMoonphase  = bTestMoonSupport ? 2 : -1;
+   Config.PosInhumidity = bTestMoonSupport ? 3 : -1;
+
+   Config.PosUvi        = 4;
+   Config.PosPressure   = 5;
+   Config.PosAirQuality = 6;
+   Config.PosVisibility = 7;
+   Config.PosIntemp     = 8;
+   Config.PosDewpoint   = 9;
+
+   switch(Config.DisplayFormat) {
       case FORMAT_800X480:
-         Config.DisplayWidth    = 800;
-         Config.DisplayHeight   = 480;
-         Config.PosSunrise      = 0;
-         Config.PosSunset       = 1;
-         Config.PosWind         = 2;
-         Config.PosHumidity     = 3;
-         Config.PosUvi          = 4;
-         Config.PosPressure     = 5;
-         Config.PosAirQuality   = 6;
-         Config.PosVisibility   = 7;
-         Config.PosIntemp       = 8;
-         Config.PosInhumidity   = 9;
-         Config.PosMoonrise     = -1;
-         Config.PosMoonset      = -1;
-         Config.PosMoonphase    = -1;
-         Config.PosDewpoint     = -1;
+         Config.DisplayWidth  = 800;
+         Config.DisplayHeight = 480;
          break;
 
       case FORMAT_640X384:
-         // if a 640 x 384 display is used, then positions 6,7,8,9 are not available
-         Config.DisplayWidth    = 640;
-         Config.DisplayHeight   = 384;
-         Config.PosSunrise      = 0;
-         Config.PosSunset       = 1;
-         Config.PosWind         = 2;
-         Config.PosHumidity     = 3;
-         Config.PosVisibility   = 4;
-         Config.PosIntemp       = 5;
-         Config.PosUvi          = -1;
-         Config.PosPressure     = -1;
-         Config.PosAirQuality   = -1;
-         Config.PosInhumidity   = -1;
-         Config.PosMoonrise     = -1;
-         Config.PosMoonset      = -1;
-         Config.PosMoonphase    = -1;
-         Config.PosDewpoint     = -1;
+      // if a 640 x 384 display is used, then positions 6,7,8,9 are not available
+         Config.DisplayWidth  = 640;
+         Config.DisplayHeight = 384;
+         Config.PosVisibility = 4;  // display visibility instead of UVI
+         Config.PosIntemp     = 5;  // display inside temp instead of pressure
+         Config.PosUvi        = -1;
+         Config.PosPressure   = -1;
+         Config.PosAirQuality = -1;
+         Config.PosDewpoint   = -1;
          break;
 
       case FORMAT_400X300:
-         // if a 400 x 300 display is used, then 12 positions available ???
-         Config.DisplayWidth    = 400;
-         Config.DisplayHeight   = 300;
-         Config.PosSunrise      = 0;
-         Config.PosSunset       = 1;
-         Config.PosWind         = 2;
-         Config.PosHumidity     = 3;
-         Config.PosUvi          = 4;
-         Config.PosPressure     = 5;
-         Config.PosAirQuality   = 6;
-         Config.PosVisibility   = 7;
-         Config.PosIntemp       = 8;
-         Config.PosInhumidity   = 9;
-         Config.PosMoonrise     = -1;
-         Config.PosMoonset      = -1;
-         Config.PosMoonphase    = -1;
-         Config.PosDewpoint     = -1;
+         Config.DisplayWidth  = 400;
+         Config.DisplayHeight = 300;
          break;
    }
 
@@ -344,8 +324,7 @@ void OwmDrawTest(int c)
       DrawBoundingBox(xOffset,yOffset,Config.DisplayWidth,Config.DisplayHeight);
    }
 
-   LOG("Updating %s res display in %s mode.\n",
-       FormatDesc,Config.bMetric ? "metric / German" : "english");
+   LOG("Updating %s res display.\n",FormatDesc);
 
    ClearScreen();
    class DrawOWM *owm = new DrawOWM(epaper,Config);
@@ -484,8 +463,6 @@ void TestTrueType(int c)
       wchar_t BattIcons[] = {
       // battery_*
          0xebdc,0xebd9,0xebe0,0xebdd,0xebe2,0xebd4,0xebd2,0xe1a4, 
-      // visibility
-         0xe8f4,
          0
       };
       wchar_t Temp[2] = {0,0};
@@ -628,6 +605,7 @@ void TestTrueType(int c)
          0xf10e,  // biological_hazard_symbol
          0xf10f,  // ionizing_radiation_symbol
          0xf110,  // warning_icon
+         0xe8f4,  // visibility
          0xf0fe,  // wind_direction_meteorological_0deg
          0xf0ff,  // wind_direction_meteorological_112_5deg
          0xf100,  // wind_direction_meteorological_135deg
