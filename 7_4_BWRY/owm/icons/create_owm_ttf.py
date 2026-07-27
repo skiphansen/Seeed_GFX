@@ -88,6 +88,7 @@ def create_ttf_from_svg():
         0xebd4: "battery_5_bar_90deg",
         0xebd2: "battery_6_bar_90deg",
         0xe1a4: "battery_full_90deg",
+        0xe8f4: "visibility_icon"
     }
 
     max_width = 0
@@ -139,7 +140,7 @@ def create_ttf_from_svg():
         if 'wind_direction_meteorological' in name:
             glyph.left_side_bearing = 250
         else:
-            glyph.left_side_bearing = int(left_side_bearing)
+            glyph.left_side_bearing = 0
 
         # must reset width (advancewidth) since setting left_side_bearing changes it
         glyph.width = 2000
