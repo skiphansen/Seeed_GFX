@@ -12,17 +12,17 @@ Here is the 6 colors you can display:
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <DrawOWM.h>
 
 #include "driver.h"
 #include "TFT_eSPI.h"
-#include <DrawOWM.h>
-#include "owm_response.h"
 
 #include <FS.h>
 using namespace fs;
 #include <truetype.h>
 #include "LittleFS.h"
 #include "config.h"
+#include "owm_response.h"
 #include "TestData.h"
 
 #define ENABLE_LOGGING  1
@@ -148,7 +148,7 @@ void setup()
          LOG_RAW(" 3: 800 x 480\n");
          LOG_RAW(" a: Arrow Icon test\n");
          LOG_RAW(" b: Battery Icon test\n");
-         LOG_RAW(" l: Toggle languate\n");
+         LOG_RAW(" l: Toggle language\n");
          LOG_RAW(" m: Toggle moon data testing\n");
          LOG_RAW(" o: owm_icons.ttf test\n");
          LOG_RAW(" O: test compiled in TTF owm icons\n");
@@ -177,6 +177,7 @@ void setup()
          case 't':
          case 'T':
             TestTrueType(c);
+            break;
 
          case 'l':
             bMetric = !bMetric;
@@ -416,7 +417,7 @@ void TestTrueType(int c)
       }
    }
    else {
-      if(!truetype.setTtfPointer(owm_icons,sizeof(owm_icons))) {
+      if(!truetype.setTtfPointer(owm_icons,sizeof(owm_icons),1)) {
          LOG("setTtfPointer failed\n");
       }
    }

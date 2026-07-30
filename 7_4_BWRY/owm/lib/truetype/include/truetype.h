@@ -239,6 +239,8 @@ class truetypeClass {
     int readTableDirectory(int checkCheckSum);
     void readHeadTable();
     void readCoords(char _xy, uint16_t _startPoint = 0);
+    uint8_t TtfOpenCommon(uint8_t _checkCheckSum);
+
 
     // Glyph
     ttGlyphTransformation_t glyphTransformation;

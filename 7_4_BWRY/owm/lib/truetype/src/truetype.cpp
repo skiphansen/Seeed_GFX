@@ -20,65 +20,74 @@ void truetypeClass::end() {
     if (table != nullptr) free(table);
 }
 
-uint8_t truetypeClass::setTtfFile(File _file, uint8_t _checkCheckSum) {
+uint8_t truetypeClass::TtfOpenCommon(uint8_t _checkCheckSum)
+{
+   uint8_t Ret = 0;
+   int ErrorLine = 0;
+
+   do {
+      if (readTableDirectory(_checkCheckSum) == 0) {
+         ErrorLine = __LINE__;
+         break;
+      }
+
+      if (readCmap() == 0) {
+         ErrorLine = __LINE__;
+         break;
+      }
+
+      if (readHMetric() == 0) {
+         ErrorLine = __LINE__;
+         break;
+      }
+      iBufferedBytes = 0;
+#ifdef ENABLEKERNING
+// don't abort on error, the kerning table is optional
+      readKern();
+#endif
+      readHeadTable();
+      if(readHhea() == 0) {
+         ErrorLine = __LINE__;
+         break;
+      }
+      Ret = 1;
+   } while(false);
+
+   if(Ret == 0) {
+      LOG("init failure @ line %d\n",ErrorLine);
+   }
+
+   return Ret;
+}
+
+uint8_t truetypeClass::setTtfFile(File _file, uint8_t _checkCheckSum) 
+{
+   uint8_t Ret;
+   LOG("file \"%s\" checksum %d\n",_file.name(),_checkCheckSum);
     if (_file == 0) {
         return 0;
     }
+	 file = _file;
+    Ret = TtfOpenCommon(_checkCheckSum);
 
-    file = _file;
-    if (readTableDirectory(_checkCheckSum) == 0) {
-        file.close();
-        return 0;
+    if(!Ret) {
+       _file.close();
     }
-
-    if (readCmap() == 0) {
-        file.close();
-        return 0;
-    }
-
-    if (readHMetric() == 0) {
-        file.close();
-        return 0;
-    }
-    iBufferedBytes = 0;
-#ifdef ENABLEKERNING
-    readKern();
-#endif
-    readHeadTable();
-    readHhea();
-    return 1;
+    return Ret;
 }
 
 void truetypeClass::setTtfDrawPixel(TTF_DRAWPIXEL *p) {
     pfnDrawPixel = p;
 }
 
-uint8_t truetypeClass::setTtfPointer(const uint8_t *p, uint32_t u32Size, uint8_t _checkCheckSum, bool bF) {
+uint8_t truetypeClass::setTtfPointer(const uint8_t *p, uint32_t u32Size, uint8_t _checkCheckSum, bool bF) 
+{
     pTTF = p;
     u32TTFSize = u32Size;
     bFlash = bF;
+    LOG("%d bytes @ %p checksum %d, flash %d\n",u32Size,p,_checkCheckSum,bF);
 
-    if (readTableDirectory(_checkCheckSum) == 0) {
-        file.close();
-        return 0;
-    }
-
-    if (readCmap() == 0) {
-        file.close();
-        return 0;
-    }
-
-    if (readHMetric() == 0) {
-        file.close();
-        return 0;
-    }
-
-#ifdef ENABLEKERNING
-    readKern();
-#endif
-    readHeadTable();
-    return 1;
-
+    return TtfOpenCommon(_checkCheckSum);
 } 
 
 int truetypeClass::ttfRead(uint8_t *d, int iLen) {
@@ -253,11 +262,13 @@ int truetypeClass::readTableDirectory(int checkCheckSum) {
 
     if (checkCheckSum) {
         for (int i = 0; i < numTables; i++) {
-            if (strcmp(table[i].name, "head") != 0) { /* checksum of "head" is invalid */
+            if (strcmp(table[i].name, "head") != 0) { 
                 uint32_t c = calculateCheckSum(table[i].offset, table[i].length);
                 if (table[i].checkSum != c) {
+                   LOG("checksum of \"head\" is invalid\n");
                     return 0;
                 }
+                LOG("checksum of \"head\" is valid.\n");
             }
         }
     }

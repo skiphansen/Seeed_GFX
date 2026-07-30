@@ -9,3 +9,26 @@ FreeSans_16pt8b height is = 38
 FreeSans_18pt8b height is = 42
 FreeSans_26pt8b height is = 61
 
+## Replacing bitmapped ICONS with TrueType
+Calculating size .pio/build/seeed/firmware.elf
+
+compiled for bitmaps:
+   text    data     bss     dec     hex filename
+ 419765  650132  441253 1511150  170eee .pio/build/seeed/firmware.elf
+
+compiled for truetype with embedded ttf data:
+   text    data     bss     dec     hex filename
+ 416793  397284  441253 1255330  1327a2 .pio/build/seeed/firmware.elf
+
+code space savings = 2972 bytes
+data space savings = 252848 bytes
+total savings = 255820 = 249.8K
+
+compiled for truetype with ttf data in filesystem:
+   text    data     bss     dec     hex filename
+ 416393  288128  441253 1145774  117bae .pio/build/seeed/firmware.elf
+
+code space savings = 3372 bytes
+data space savings = 362004 bytes
+total savings excluding fileystems = 365376 = 356.8K
+
