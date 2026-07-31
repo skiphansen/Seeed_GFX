@@ -78,9 +78,10 @@ uint8_t truetypeClass::setTtfFile(File _file, uint8_t _checkCheckSum)
 
 void truetypeClass::setTtfDrawPixel(TTF_DRAWPIXEL *p) {
     pfnDrawPixel = p;
+    LOG("pfnDrawPixel %p\n",p);
 }
 
-uint8_t truetypeClass::setTtfPointer(const uint8_t *p, uint32_t u32Size, uint8_t _checkCheckSum, bool bF) 
+uint8_t truetypeClass::setTtfPointer(uint8_t *p, uint32_t u32Size, uint8_t _checkCheckSum, bool bF) 
 {
     pTTF = p;
     u32TTFSize = u32Size;
@@ -189,22 +190,26 @@ void truetypeClass::setFramebuffer(uint16_t _framebufferWidth, uint16_t _framebu
 
 void truetypeClass::setCharacterSize(uint16_t _characterSize) {
     characterSize = _characterSize;
+    LOG("characterSize %d\n",characterSize);
 }
 
 void truetypeClass::setCharacterSpacing(int16_t _characterSpace, uint8_t _kerning) {
     characterSpace = _characterSpace;
     kerningOn = _kerning;
+    LOG("characterSpace %d kerningOn %d\n",characterSpace,kerningOn);
 }
 
 void truetypeClass::setTextBoundary(uint16_t _start_x, uint16_t _end_x, uint16_t _end_y) {
     start_x = _start_x;
     end_x = _end_x;
     end_y = _end_y;
+    LOG("start_x %d end_x %d end_y %d\n",start_x,end_x,end_y);
 }
 
 void truetypeClass::setTextColor(uint16_t _onLine, uint16_t _inside) {
     colorLine = _onLine;
     colorInside = _inside;
+    LOG("colorLine %d colorInside %d\n",colorLine,colorInside);
 }
 
 void truetypeClass::setTextRotation(uint16_t _rotation) {
@@ -226,6 +231,7 @@ void truetypeClass::setTextRotation(uint16_t _rotation) {
             break;
     }
     stringRotation = _rotation;
+    LOG("_rotation %d\n",_rotation);
 }
 
 /* ----------------private---------------- */
@@ -521,7 +527,7 @@ void truetypeClass::getHMetric(uint16_t _code,ttHMetric_t *Ret)
 {
 // Get advanceWidth
    if (_code < numOfLongHorMetrics) {
-      LOG("%d < numOfLongHorMetrics\n",_code);
+      LOG("%d < numOfLongHorMetrics (%d)\n",_code,numOfLongHorMetrics);
       ttfSeek(hmtxTablePos + (_code * 4));
       Ret->advanceWidth = getUInt16t();
       Ret->leftSideBearing = getInt16t();
@@ -1030,7 +1036,7 @@ void truetypeClass::textDraw(int16_t _x, int16_t _y, const wchar_t _character[])
             continue;
         }
 
-        LOG("'%c': _x %d  _y %d glyph.numberOfContours %d\n",
+        LOG("char 0x%x: _x %d  _y %d glyph.numberOfContours %d\n",
             _character[c],_x,_y,glyph.numberOfContours);
         if (glyph.numberOfContours >= 0) {
             generateOutline(_x, _y, characterSize);
@@ -1259,12 +1265,13 @@ void truetypeClass::freeEndPoints() {
 /* seek to the first position of the specified table name */
 uint32_t truetypeClass::seekToTable(const char *name) {
     for (uint32_t i = 0; i < numTables; i++) {
-       LOG("%s @ 0x%x\n",table[i].name,table[i].offset);
         if (strcmp(table[i].name, name) == 0) {
             ttfSeek(table[i].offset);
+            LOG("%s @ 0x%x\n",table[i].name,table[i].offset);
             return table[i].offset;
         }
     }
+    LOG("\"%s\" table not found\n",name);
     return 0;
 }
 

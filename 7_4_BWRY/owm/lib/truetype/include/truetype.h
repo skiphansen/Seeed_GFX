@@ -182,7 +182,7 @@ class truetypeClass {
     truetypeClass();
 
     uint8_t setTtfFile(File _file, uint8_t _checkCheckSum = 0);
-    uint8_t setTtfPointer(const uint8_t *p, uint32_t u32Size, uint8_t _checkCheckSum = 0, bool bF = true);
+    uint8_t setTtfPointer(uint8_t *pTTF, uint32_t u32Size, uint8_t _checkCheckSum = 0, bool bFlash = true);
     void setTtfDrawPixel(TTF_DRAWPIXEL *p);
     void setFramebuffer(uint16_t _framebufferWidth, uint16_t _framebufferHeight, uint16_t _framebuffer_bit, uint8_t *_framebuffer);
     void setCharacterSpacing(int16_t _characterSpace, uint8_t _kerning = 1);
@@ -206,7 +206,7 @@ class truetypeClass {
 
    private:
     File file;
-    const uint8_t *pTTF = NULL;             // pointer to TTF data (not from file)
+    uint8_t *pTTF = NULL;                   // pointer to TTF data (not from file)
     bool bFlash = true;                     // does the TTF data come from FLASH?
     uint32_t u32TTFSize, u32TTFOffset = 0;  // current read offset into TTF data
 

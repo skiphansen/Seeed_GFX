@@ -417,7 +417,7 @@ void TestTrueType(int c)
       }
    }
    else {
-      if(!truetype.setTtfPointer(owm_icons,sizeof(owm_icons),1)) {
+      if(!truetype.setTtfPointer((uint8_t*)owm_icons,sizeof(owm_icons),1)) {
          LOG("setTtfPointer failed\n");
       }
    }
