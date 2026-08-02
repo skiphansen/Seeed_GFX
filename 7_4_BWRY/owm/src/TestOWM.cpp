@@ -119,12 +119,15 @@ const LookupTbl_t LookupTbl[] = {
 };
 bool bTestMoonSupport;
 bool bMetric;
+int gRssi = -59;
+uint16_t gBattV = 2960;
 
 void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height);
 void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w, int16_t h, uint16_t color);
 void OwmDrawTest(int c);
 void TestTrueType(int c);
 void ClearScreen(void);
+void DrawBB(uint16_t x,uint16_t y,uint16_t Size,int color);
 
 EPaper epaper;
 
@@ -152,8 +155,10 @@ void setup()
          LOG_RAW(" m: Toggle moon data testing\n");
          LOG_RAW(" o: owm_icons.ttf test\n");
          LOG_RAW(" O: test compiled in TTF owm icons\n");
+         LOG_RAW(" r: change RSSI\n");
          LOG_RAW(" t: TrueType test\n");
          LOG_RAW(" T: 196 x 196 Icon test\n");
+         LOG_RAW(" v: change Battery voltage\n");
          LOG_RAW("Press a key to start a test\n");
       }
       bDisplayMenu = true;
@@ -179,6 +184,36 @@ void setup()
             TestTrueType(c);
             break;
 
+         case 'v':
+            switch(gBattV) {
+               case 3100:
+                  gBattV = 3025;
+                  break;
+
+               case 3025:
+                  gBattV = 2950;
+                  break;
+
+               case 2950:
+                  gBattV = 2850;
+                  break;
+
+               case 2850:
+                  gBattV = 2400;
+                  break;
+
+               case 2400:
+                  gBattV = 1500;
+                  break;
+
+               default:
+                  gBattV = 3100;
+                  break;
+            }
+            LOG_RAW("Battery V %d mv\n",gBattV);
+            bDisplayMenu = false;
+            continue;
+
          case 'l':
             bMetric = !bMetric;
             LOG_RAW("%s selected\n",bMetric ? "German" : "English");
@@ -189,6 +224,12 @@ void setup()
             bTestMoonSupport = !bTestMoonSupport;
             LOG_RAW("%s moon support\n",bTestMoonSupport ? "Testing" : "Not testing");
             bDisplayMenu = false;
+            continue;
+
+         case 'r':
+            gRssi = gRssi > -40 ? -75 : gRssi + 10;
+            bDisplayMenu = false;
+            LOG_RAW("RSSI %d\n",gRssi);
             continue;
 
          default:
@@ -215,8 +256,8 @@ void OwmDrawTest(int c)
    Config.AirPollutionApiResponse = OwmAirPollutionTestResponse;
    Config.inTemp     = NAN;
    Config.inHumidity = NAN;
-   Config.batteryVoltage = 2960;
-   Config.Rssi = -59;
+   Config.batteryVoltage = gBattV;
+   Config.Rssi = gRssi;
    Config.bMetric = bMetric; // also selects language
    Config.bLiPo = false;
    Config.DisplayFormat = FORMAT_400X300;
@@ -586,18 +627,18 @@ void TestTrueType(int c)
          LOG_RAW("testing compiled in TTF owm icons\n");
       }
       wchar_t OwmIcons[] = {
-         0xe1a4,  // battery_full_90deg
-         0xebd2,  // battery_6_bar_90deg
-         0xebd4,  // battery_5_bar_90deg
-         0xebd9,  // battery_1_bar_90deg
          0xebdc,  // battery_0_bar_90deg
-         0xebdd,  // battery_3_bar_90deg
+         0xebd9,  // battery_1_bar_90deg
          0xebe0,  // battery_2_bar_90deg
+         0xebdd,  // battery_3_bar_90deg
          0xebe2,  // battery_4_bar_90deg
+         0xebd4,  // battery_5_bar_90deg
+         0xebd2,  // battery_6_bar_90deg
+         0xe1a4,  // battery_full_90deg
          0xe4ca,  // wifi_1_bar
          0xe4d9,  // wifi_2_bar
-         0xe63e,  // wifi
          0xebe1,  // wifi_3_bar
+         0xe63e,  // wifi
          0xf0f0,  // wifi_x
          0xf0f1,  // air_filter
          0xf0fa,  // error_icon
@@ -626,18 +667,24 @@ void TestTrueType(int c)
          0
       };
       wchar_t Temp[2] = {0,0};
+      wchar_t CodePoint;
 
       uint16_t Size = 48;
       x = 0;
       truetype.setCharacterSize(Size);
       for(int i = 0; OwmIcons[i] != 0; i++) {
-         if( OwmIcons[i] == 0xf0fe) {
-            y += Size + 1;
+         CodePoint = OwmIcons[i];
+         Temp[0] = CodePoint;
+         if(CodePoint == 0xf0fe || CodePoint == 0xe4ca) {
+         // new line
+            y += Size + 4;
             x = 0;
          }
-         Temp[0] = OwmIcons[i];
+         DrawBB(x,y,Size,TFT_RED);
+         x += 2;
+         CodePoint = Temp[0] = OwmIcons[i];
          truetype.textDraw(x,y,Temp);
-         x += Size;
+         x += Size + 2;
          if(x > (799 - Size)) {
             y += Size + 1;
             x = 0;
@@ -696,5 +743,17 @@ void drawInvertedBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w,
          }
       }
    }
+}
+
+void DrawBB(uint16_t x,uint16_t y,uint16_t Size,int color)
+{
+// top
+   epaper.drawLine(x,y,x + Size + 2,y,color); 
+// bottom
+   epaper.drawLine(x,y+Size+2,x + Size + 2,y + Size + 2,color); 
+// left
+   epaper.drawLine(x,y,x,y + Size+2,color); 
+   // right
+   epaper.drawLine(x + Size + 2,y,x + Size + 2, y + Size + 2,color);   
 }
 
