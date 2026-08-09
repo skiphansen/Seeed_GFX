@@ -119,6 +119,7 @@ const LookupTbl_t LookupTbl[] = {
 };
 bool bTestMoonSupport;
 bool bMetric;
+bool bEmbedded;
 int gRssi = -59;
 uint16_t gBattV = 2960;
 
@@ -151,6 +152,7 @@ void setup()
          LOG_RAW(" 3: 800 x 480\n");
          LOG_RAW(" a: Arrow Icon test\n");
          LOG_RAW(" b: Battery Icon test\n");
+         LOG_RAW(" f: Toggle between file based and embedded TrueType data\n");
          LOG_RAW(" l: Toggle language\n");
          LOG_RAW(" m: Toggle moon data testing\n");
          LOG_RAW(" o: owm_icons.ttf test\n");
@@ -159,6 +161,7 @@ void setup()
          LOG_RAW(" t: TrueType test\n");
          LOG_RAW(" T: 196 x 196 Icon test\n");
          LOG_RAW(" v: change Battery voltage\n");
+         LOG_RAW(" w: Wifi icon test\n");
          LOG_RAW("Press a key to start a test\n");
       }
       bDisplayMenu = true;
@@ -178,9 +181,9 @@ void setup()
          case 'A':
          case 'b':
          case 'o':
-         case 'O':
          case 't':
          case 'T':
+         case 'w':
             TestTrueType(c);
             break;
 
@@ -214,6 +217,12 @@ void setup()
             bDisplayMenu = false;
             continue;
 
+         case 'f':
+            bEmbedded = !bEmbedded;
+            LOG_RAW("Using TrueType data from %s\n",bEmbedded ? "flash" : "file");
+            bDisplayMenu = false;
+            continue;
+
          case 'l':
             bMetric = !bMetric;
             LOG_RAW("%s selected\n",bMetric ? "German" : "English");
@@ -227,7 +236,15 @@ void setup()
             continue;
 
          case 'r':
-            gRssi = gRssi > -40 ? -75 : gRssi + 10;
+            if(gRssi == 0) {
+               gRssi = -50;
+            }
+            else if(gRssi >= -70) {
+               gRssi -= 10;
+            }
+            else {
+               gRssi = 0;
+            }
             bDisplayMenu = false;
             LOG_RAW("RSSI %d\n",gRssi);
             continue;
@@ -362,13 +379,12 @@ void OwmDrawTest(int c)
    Config.xOffset = xOffset;
    Config.yOffset = yOffset;
 
+   ClearScreen();
    if (Config.DisplayWidth != 800) {
       DrawBoundingBox(xOffset,yOffset,Config.DisplayWidth,Config.DisplayHeight);
    }
-
    LOG("Updating %s res display.\n",FormatDesc);
 
-   ClearScreen();
    class DrawOWM *owm = new DrawOWM(epaper,Config);
    if (Config.bMetric) {
       JsonDocument filter;
@@ -436,13 +452,15 @@ void TestTrueType(int c)
    truetype.setTextRotation(90);
    truetype.setTextBoundary(0,height,width);
    truetype.textDraw(x,y,"TrueType Test");
+   y += 40;
 
    const char* IconPath = NULL;
-   switch(c) {
+   if(!bEmbedded) switch(c) {
       case 'b':
       case 'a':
       case 'A':
       case 'o':
+      case 'w':
          IconPath = "/fonts/owm_icons.ttf";
          break;
 
@@ -462,7 +480,6 @@ void TestTrueType(int c)
          LOG("setTtfPointer failed\n");
       }
    }
-   y += 32;
 
    wchar_t Icons[33];
    if(c == 't') {
@@ -619,13 +636,8 @@ void TestTrueType(int c)
          }
       }
    }
-   else if(c == 'o' || c == 'O') {
-      if(c == 'o') {
-         LOG_RAW("testing owm_icons.ttf\n");
-      }
-      else {
-         LOG_RAW("testing compiled in TTF owm icons\n");
-      }
+   else if(c == 'o') {
+      LOG_RAW("testing owm icons\n");
       wchar_t OwmIcons[] = {
          0xebdc,  // battery_0_bar_90deg
          0xebd9,  // battery_1_bar_90deg
@@ -664,6 +676,8 @@ void TestTrueType(int c)
          0xf10b,  // wind_direction_meteorological_45deg
          0xf10c,  // wind_direction_meteorological_67_5deg
          0xf10d,  // wind_direction_meteorological_90deg
+         0xf111,  // tide_down_arrow_water
+         0xf112,  // tide_up_arrow_water
          0
       };
       wchar_t Temp[2] = {0,0};
@@ -675,17 +689,58 @@ void TestTrueType(int c)
       for(int i = 0; OwmIcons[i] != 0; i++) {
          CodePoint = OwmIcons[i];
          Temp[0] = CodePoint;
-         if(CodePoint == 0xf0fe || CodePoint == 0xe4ca) {
+         if(CodePoint == 0xf0fe || CodePoint == 0xe4ca || CodePoint == 0xf111) {
          // new line
             y += Size + 4;
             x = 0;
          }
          DrawBB(x,y,Size,TFT_RED);
          x += 2;
-         CodePoint = Temp[0] = OwmIcons[i];
-         truetype.textDraw(x,y,Temp);
+         if(CodePoint == 0xf112) {
+            truetype.bLogTTF = true;
+            truetype.textDraw(x,y,Temp);
+            truetype.bLogTTF = false;
+         }
+         else {
+            truetype.textDraw(x,y,Temp);
+         }
          x += Size + 2;
          if(x > (799 - Size)) {
+            y += Size + 1;
+            x = 0;
+         }
+      }
+   }
+   else if(c == 'w') {
+      LOG_RAW("testing wifi icons\n");
+      wchar_t OwmIcons[] = {
+         0xe4ca,  // wifi_1_bar
+         0xe4d9,  // wifi_2_bar
+         0xebe1,  // wifi_3_bar
+         0xe63e,  // wifi
+         0xf0f0,  // wifi_x
+         0
+      };
+      wchar_t Temp[2] = {0,0};
+      wchar_t CodePoint;
+
+      for(uint16_t Size = 16; Size < 128; Size += 16) {
+         x = 0;
+         truetype.setCharacterSize(Size);
+         for(int i = 0; OwmIcons[i] != 0; i++) {
+            CodePoint = OwmIcons[i];
+            Temp[0] = CodePoint;
+            DrawBB(x,y,Size,TFT_RED);
+            x += 2;
+            truetype.bLogTTF = true;
+            truetype.textDraw(x,y,Temp);
+            truetype.bLogTTF = false;
+            x += Size + 2;
+            if(x > (799 - Size)) {
+            }
+         }
+
+         if(x !=  0) {
             y += Size + 1;
             x = 0;
          }
