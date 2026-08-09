@@ -1,12 +1,30 @@
+#define ENABLE_LOGGING  0
+#define VERBOSE_LOGGING
 #include "truetype.h"
 
-#define ENABLE_LOGGING  0
-#if ENABLE_LOGGING && __has_include("logging.h") 
-#include "logging.h"
+#if ENABLE_LOGGING
+#undef DUMP_HEX
+#define DUMP_HEX(x,y) if(bLogTTF) DumpHex(x,y)
+
+#undef LOG
+#define LOG(format, ...) if(bLogTTF) _LOG("%s: " format,__FUNCTION__,## __VA_ARGS__)
+
+#undef LOG_RAW
+#define LOG_RAW(format, ...) if(bLogTTF) _LOG(format,## __VA_ARGS__)
+
+#ifdef VERBOSE_LOGGING
+#define VLOG(format, ...) if(bLogTTF) _LOG("%s: " format,__FUNCTION__,## __VA_ARGS__)
+#else
+#define VLOG(format, ...)
+#endif
+
+
 #else
 #define LOG(format, ...)
+#define ELOG(format, ...)
+#define VLOG(format, ...)
 #define LOG_RAW(format, ...)
-#endif
+#endif   // ENABLE_LOGGING
 
 //Kerning is optional. Many fonts don't have kerning tables anyway.
 //#define ENABLEKERNING
@@ -25,6 +43,7 @@ uint8_t truetypeClass::TtfOpenCommon(uint8_t _checkCheckSum)
    uint8_t Ret = 0;
    int ErrorLine = 0;
 
+   bLogTTF = true;
    do {
       if (readTableDirectory(_checkCheckSum) == 0) {
          ErrorLine = __LINE__;
@@ -54,8 +73,9 @@ uint8_t truetypeClass::TtfOpenCommon(uint8_t _checkCheckSum)
    } while(false);
 
    if(Ret == 0) {
-      LOG("init failure @ line %d\n",ErrorLine);
+      ELOG("init failure @ line %d\n",ErrorLine);
    }
+   bLogTTF = false;
 
    return Ret;
 }
@@ -506,7 +526,7 @@ uint8_t truetypeClass::readHMetric() {
 }
 
 /* 
-This code is incomplete because it only handles the Glyph ID < numberOfHMetrics 
+This code was incomplete because it only handled the Glyph ID < numberOfHMetrics 
 case.
  
 The hmtx table pairs an advance width and a left side bearing for every 
@@ -782,6 +802,8 @@ void truetypeClass::generateOutline(int16_t _x, int16_t _y, uint16_t characterSi
     numBeginPoints = 0;
     numEndPoints = 0;
 
+    VLOG("%d,%d size %d\n",_x,_y,characterSize);
+
     float x0, y0, x1, y1;
 
     uint16_t j = 0;
@@ -820,6 +842,7 @@ void truetypeClass::generateOutline(int16_t _x, int16_t _y, uint16_t characterSi
             pointsOfCurve[1].y = glyph.points[searchPoint].y;
 
             if (glyph.points[searchPoint].flag & FLAG_ONCURVE) {
+               VLOG("point on curve \n");
 
                 addLine(pointsOfCurve[0].x * characterSize / headTable.unitsPerEm + _x,
                         (ascender - pointsOfCurve[0].y) * characterSize / headTable.unitsPerEm + _y,
@@ -830,6 +853,7 @@ void truetypeClass::generateOutline(int16_t _x, int16_t _y, uint16_t characterSi
                 j += 1;
 
             } else {
+               VLOG("not on curve\n");
 
                 searchPoint = (searchPoint == lastPointOfContour) ? (firstPointOfContour) : (searchPoint + 1);
 
@@ -870,6 +894,8 @@ void truetypeClass::generateOutline(int16_t _x, int16_t _y, uint16_t characterSi
 
 void truetypeClass::addLine(float _x0, float _y0, float _x1, float _y1) {
 
+   VLOG("%f,%f -> %f,%f\n",_x0,_y0,_x1,_y1);
+
     if (numPoints == 0) {
         addPoint(_x0, _y0);
         addBeginPoint(0);
@@ -902,6 +928,7 @@ void truetypeClass::addLine(float _x0, float _y0, float _x1, float _y1) {
 }
 
 void truetypeClass::fillGlyph(int16_t _x_min, int16_t _y_min, uint16_t characterSize) {
+   VLOG("%d,%d characterSize %d\n",_x_min,_y_min,characterSize);
     for (int16_t y = round((float)(ascender - glyph.yMax) * (float)characterSize / (float)headTable.unitsPerEm + _y_min);
          y < round((float)(ascender - glyph.yMin) * (float)characterSize / (float)headTable.unitsPerEm + _y_min);
          y++) {
@@ -1008,9 +1035,8 @@ void truetypeClass::textDraw(int16_t _x, int16_t _y, const wchar_t _character[])
             int16_t kern = getKerning(prev_code, charCode);  // space between charctor
             _x += (kern * (int16_t)characterSize) / headTable.unitsPerEm;
         }
-#endif
         prev_code = charCode;
-
+#endif
         ttHMetric_t hMetric ;
         getHMetric(charCode,&hMetric);
 
@@ -1083,6 +1109,7 @@ void truetypeClass::addPixel(int16_t _x, int16_t _y, uint16_t _colorCode) {
     }
     // limit to boundary co-ordinates the boundary is always in the same orientation as the string not the buffer
     if ((_x < start_x) || (_x >= end_x) || (_y >= end_y)) {
+       ELOG("%d, %d out of range\n",_x,_y);
         return;
     }
 
@@ -1104,12 +1131,13 @@ void truetypeClass::addPixel(int16_t _x, int16_t _y, uint16_t _colorCode) {
        case 0:
           break;
        default:
-          LOG("Invalid stringRotation %d\n",stringRotation);
+          ELOG("Invalid stringRotation %d\n",stringRotation);
           break;
     }
 
     // out of range
     if ((_x < 0) || ((uint16_t)_x >= displayWidth) || ((uint16_t)_y >= displayHeight) || (_y < 0)) {
+       ELOG("%d, %d out of range\n",_x,_y);
         return;
     }
 
@@ -1223,18 +1251,21 @@ void truetypeClass::addPoint(int16_t _x, int16_t _y) {
     points = (ttCoordinate_t *)realloc(points, sizeof(ttCoordinate_t) * numPoints);
     points[(numPoints - 1)].x = _x;
     points[(numPoints - 1)].y = _y;
+    VLOG("%d,%d numPoints %d\n",_x,_y,numPoints);
 }
 
 void truetypeClass::addBeginPoint(uint16_t _bp) {
     numBeginPoints++;
     beginPoints = (uint16_t *)realloc(beginPoints, sizeof(uint16_t) * numBeginPoints);
     beginPoints[(numBeginPoints - 1)] = _bp;
+    VLOG("bp %d numBeginPoints %d\n",_bp,numBeginPoints);
 }
 
 void truetypeClass::addEndPoint(uint16_t _ep) {
     numEndPoints++;
     endPoints = (uint16_t *)realloc(endPoints, sizeof(uint16_t) * numEndPoints);
     endPoints[(numEndPoints - 1)] = _ep;
+    VLOG("ep %d numEndPoints %d\n",_ep,numEndPoints);
 }
 
 void truetypeClass::freePointsAll() {

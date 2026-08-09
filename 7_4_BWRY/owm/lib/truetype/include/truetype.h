@@ -14,6 +14,11 @@ lots of bugfixes and improvements by Nic.
 #ifndef TRUETYPE_H
 #define TRUETYPE_H
 
+#if ENABLE_LOGGING && __has_include("logging.h") 
+#include "logging.h"
+#define TTF_LOGGING
+#endif
+
 #if !defined _SPI_H_INCLUDED
 #include "SPI.h"
 #endif /*_SPI_H_INCLUDED*/
@@ -203,6 +208,7 @@ class truetypeClass {
     void ttfSeek(uint32_t u32Offset);
     uint32_t ttfPosition(void);
     void end();
+    bool bLogTTF;
 
    private:
     File file;
