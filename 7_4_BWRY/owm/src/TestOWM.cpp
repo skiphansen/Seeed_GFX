@@ -156,7 +156,6 @@ void setup()
          LOG_RAW(" l: Toggle language\n");
          LOG_RAW(" m: Toggle moon data testing\n");
          LOG_RAW(" o: owm_icons.ttf test\n");
-         LOG_RAW(" O: test compiled in TTF owm icons\n");
          LOG_RAW(" r: change RSSI\n");
          LOG_RAW(" t: TrueType test\n");
          LOG_RAW(" T: 196 x 196 Icon test\n");
@@ -637,7 +636,7 @@ void TestTrueType(int c)
       }
    }
    else if(c == 'o') {
-      LOG_RAW("testing owm icons\n");
+      LOG_RAW("testing owm icons in %s\n",bEmbedded ? "flash" : "file");
       wchar_t OwmIcons[] = {
          0xebdc,  // battery_0_bar_90deg
          0xebd9,  // battery_1_bar_90deg
