@@ -786,23 +786,27 @@ uint8_t truetypeClass::readGlyph(uint16_t _code, uint8_t _justSize) {
     }
 }
 
-uint8_t truetypeClass::readGlyph(uint16_t _code, ttGlyph_t *glyph)
+uint8_t truetypeClass::getMetrics(uint16_t _code, ttMetrics_t *pMetrics)
 {
-    memset(glyph,0,sizeof(*glyph));
-    uint16_t Id = codeToGlyphId(_code);
-    uint32_t offset = getGlyphOffset(Id);
-    ttfSeek(offset);
-    glyph->numberOfContours = getInt16t();
-    glyph->numberOfPoints = 0;
-    glyph->xMin = getInt16t();
-    glyph->yMin = getInt16t();
-    glyph->xMax = getInt16t();
-    glyph->yMax = getInt16t();
+   ttHMetric_t HMetrics;
+   uint16_t Id = codeToGlyphId(_code);
+   uint32_t offset = getGlyphOffset(Id);
 
-    LOG("codepoint 0x%x: id %d x %d -> %d, y %d -> %d\n",_code,Id,
-        glyph->xMin,glyph->xMax,glyph->yMin,glyph->yMax);
+   ttfSeek(offset);
+   getInt16t();  // eat numberOfContours
+   pMetrics->xMin = getInt16t();
+   pMetrics->yMin = getInt16t();
+   pMetrics->xMax = getInt16t();
+   pMetrics->yMax = getInt16t();
+   getHMetric(Id,&HMetrics);
+   pMetrics->leftSideBearing = HMetrics.leftSideBearing;
+   pMetrics->advanceWidth= HMetrics.advanceWidth;
 
-    return 0;
+   LOG("codepoint 0x%x: x %d -> %d, y %d -> %d lsb %d advanceWidth %d\n",
+       _code,pMetrics->xMin,pMetrics->xMax,pMetrics->yMin,pMetrics->yMax,
+       pMetrics->leftSideBearing,pMetrics->advanceWidth);
+
+   return 0;
 }
 
 /* free glyph */

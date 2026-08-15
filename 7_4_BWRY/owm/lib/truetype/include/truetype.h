@@ -181,6 +181,14 @@ typedef struct {
    uint16_t	numOfLongHorMetrics; // number of advance widths in metrics table 
 } ttHhea_t;
 
+typedef struct {
+    uint16_t advanceWidth;
+    int16_t leftSideBearing;
+    int16_t xMin;
+    int16_t yMin;
+    int16_t xMax;
+    int16_t yMax;
+} ttMetrics_t;
 
 class truetypeClass {
    public:
@@ -209,7 +217,7 @@ class truetypeClass {
     uint32_t ttfPosition(void);
     void end();
     bool bLogTTF;
-    uint8_t readGlyph(uint16_t code, ttGlyph_t *glyph0);
+    uint8_t getMetrics(uint16_t _code, ttMetrics_t *pMetrics);
 
    private:
     File file;
