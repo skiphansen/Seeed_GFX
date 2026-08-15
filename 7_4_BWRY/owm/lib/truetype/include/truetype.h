@@ -209,6 +209,7 @@ class truetypeClass {
     uint32_t ttfPosition(void);
     void end();
     bool bLogTTF;
+    uint8_t readGlyph(uint16_t code, ttGlyph_t *glyph0);
 
    private:
     File file;

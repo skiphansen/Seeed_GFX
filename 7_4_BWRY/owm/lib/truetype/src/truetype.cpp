@@ -67,13 +67,14 @@ uint8_t truetypeClass::TtfOpenCommon(uint8_t _checkCheckSum)
       readHeadTable();
       if(readHhea() == 0) {
          ErrorLine = __LINE__;
-         break;
       }
-      Ret = 1;
    } while(false);
 
-   if(Ret == 0) {
+   if(ErrorLine != 0) {
       ELOG("init failure @ line %d\n",ErrorLine);
+   }
+   else {
+      Ret = 1;
    }
    bLogTTF = false;
 
@@ -507,7 +508,7 @@ int16_t truetypeClass::getKerning(uint16_t _left_glyph, uint16_t _right_glyph) {
             result = getInt16t();
             break;
         }
-        uint16_t dummy = getInt16t();
+        getInt16t();
     }
 
     return result;
@@ -769,6 +770,8 @@ uint8_t truetypeClass::readGlyph(uint16_t _code, uint8_t _justSize) {
     glyph.yMin = getInt16t();
     glyph.xMax = getInt16t();
     glyph.yMax = getInt16t();
+    LOG("codepoint 0x%x: x %d -> %d, y %d -> %d\n",_code,
+        glyph.xMin,glyph.xMax,glyph.yMin,glyph.yMax);
 
     glyphTransformation = {0, 0, 0, 1, 1};  // init
 
@@ -781,6 +784,24 @@ uint8_t truetypeClass::readGlyph(uint16_t _code, uint8_t _justSize) {
     } else {
         return readCompoundGlyph();
     }
+}
+
+uint8_t truetypeClass::readGlyph(uint16_t _code, ttGlyph_t *glyph)
+{
+    memset(glyph,0,sizeof(*glyph));
+    uint16_t Id = codeToGlyphId(_code);
+    uint32_t offset = getGlyphOffset(Id);
+    ttfSeek(offset);
+    glyph->numberOfContours = getInt16t();
+    glyph->numberOfPoints = 0;
+    glyph->xMin = getInt16t();
+    glyph->yMin = getInt16t();
+    glyph->xMax = getInt16t();
+    glyph->yMax = getInt16t();
+
+    LOG("codepoint 0x%x: id %d x %d -> %d, y %d -> %d\n",_code,Id,
+        glyph->xMin,glyph->xMax,glyph->yMin,glyph->yMax);
+
     return 0;
 }
 
@@ -1012,22 +1033,25 @@ float truetypeClass::isLeft(ttCoordinate_t *_p0, ttCoordinate_t *_p1, ttCoordina
 
 void truetypeClass::textDraw(int16_t _x, int16_t _y, const wchar_t _character[]) {
     uint8_t c = 0;
+#ifdef ENABLEKERNING
     uint16_t prev_code = 0;
+#endif
 
     while (_character[c] != '\0') {
         // space (half-width, full-width)
         if ((_character[c] == ' ') || (_character[c] == L'　')) {
+#ifdef ENABLEKERNING
             prev_code = 0;
+#endif
             _x += characterSize / 4;
             c++;
             LOG("c %d moved cursor right by %d pixels\n",c,characterSize / 4);
             continue;
         }
 
+        LOG("c %d, codepoint 0x%04x\n",c,_character[c]);
         charCode = codeToGlyphId(_character[c]);
-
-        uint8_t Err = readGlyph(charCode);
-        LOG("c %d, codepoint 0x%04x, Err %d\n",c,_character[c],Err);
+        readGlyph(charCode);
 
         _x += characterSpace;
 #ifdef ENABLEKERNING
@@ -1182,14 +1206,18 @@ void truetypeClass::addPixel(int16_t _x, int16_t _y, uint16_t _colorCode) {
 }
 
 uint16_t truetypeClass::getStringWidth(const wchar_t _character[]) {
+#ifdef ENABLEKERNING
     uint16_t prev_code = 0;
+#endif
     uint16_t c = 0;
     uint16_t output = 0;
 
     while (_character[c] != '\0') {
         // space (half-width, full-width)
         if ((_character[c] == ' ') || (_character[c] == L'　')) {
+#ifdef ENABLEKERNING
             prev_code = 0;
+#endif
             output += characterSize / 4;
             c++;
             continue;
@@ -1203,9 +1231,8 @@ uint16_t truetypeClass::getStringWidth(const wchar_t _character[]) {
             int16_t kern = getKerning(prev_code, code);  // space between charctor
             output += (kern * (int16_t)characterSize) / headTable.unitsPerEm;
         }
-#endif
         prev_code = code;
-
+#endif
         ttHMetric_t hMetric;
         getHMetric(code,&hMetric);
 
@@ -1372,7 +1399,7 @@ void truetypeClass::stringToWchar(String _string, wchar_t _charctor[]) {
         if (codeu32 < 0x10000) {
             _charctor[c] = char16_t(codeu32);
         } else {
-            _charctor[c] = ((char16_t((codeu32 - 0x10000) % 0x400 + 0xDC00)) << 8) || (char16_t((codeu32 - 0x10000) / 0x400 + 0xD800));
+            _charctor[c] = ((char16_t((codeu32 - 0x10000) % 0x400 + 0xDC00)) << 8) | (char16_t((codeu32 - 0x10000) / 0x400 + 0xD800));
         }
         c++;
     }
