@@ -576,7 +576,9 @@ void TestTrueType(int c)
       }
    }
    else if(c == 'a' || c == 'A') {
-      LOG_RAW("Arrow Icon test\n");
+      LOG_RAW("Arrow Icon test, TTF data from %s\n",
+              IconPath == NULL ? "flash" : "file");
+
       if(c == 'A') {
       // dump bitmaped version of wind_direction_meteorological_0deg_24x24
       // as ASCII
@@ -607,8 +609,8 @@ void TestTrueType(int c)
          0xf0fe,  // wind_direction_meteorological_0deg
          0xf105,  // wind_direction_meteorological_22_5deg
          0xf10b,  // wind_direction_meteorological_45deg
-         0xf10d,  // wind_direction_meteorological_90deg
          0xf10c,  // wind_direction_meteorological_67_5deg
+         0xf10d,  // wind_direction_meteorological_90deg
          0xf0ff,  // wind_direction_meteorological_112_5deg
          0xf100,  // wind_direction_meteorological_135deg
          0xf101,  // wind_direction_meteorological_157_5deg
