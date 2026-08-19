@@ -312,20 +312,22 @@ void OwmDrawTest(int c)
    Config.PressureType = Config.bMetric ? UNITS_PRES_MILLIBARS :
                          UNITS_PRES_INCHESOFMERCURY;
 
-// First 4 positions when not in moon mode
+// First 2 positions when not in moon mode
    Config.PosSunrise    = !bTestMoonSupport ? 0 : -1;
    Config.PosSunset     = !bTestMoonSupport ? 1 : -1;
    Config.PosWind       = !bTestMoonSupport ? 2 : -1;
    Config.PosHumidity   = !bTestMoonSupport ? 3 : -1;
+   Config.PosUvi        = !bTestMoonSupport ? 4 : -1;
+   Config.PosPressure   = !bTestMoonSupport ? 5 : -1;
 
 // First 4 positions when in moon mode
    Config.PosMoonrise   = bTestMoonSupport ? 0 : -1;
    Config.PosMoonset    = bTestMoonSupport ? 1 : -1;
    Config.PosMoonphase  = bTestMoonSupport ? 2 : -1;
    Config.PosInhumidity = bTestMoonSupport ? 3 : -1;
+   Config.PosHighTide   = bTestMoonSupport ? 4 : -1;
+   Config.PosLowTide    = bTestMoonSupport ? 5 : -1;
 
-   Config.PosUvi        = 4;
-   Config.PosPressure   = 5;
    Config.PosAirQuality = 6;
    Config.PosVisibility = 7;
    Config.PosIntemp     = 8;
@@ -341,8 +343,14 @@ void OwmDrawTest(int c)
       // if a 640 x 384 display is used, then positions 6,7,8,9 are not available
          Config.DisplayWidth  = 640;
          Config.DisplayHeight = 384;
-         Config.PosVisibility = 4;  // display visibility instead of UVI
-         Config.PosIntemp     = 5;  // display inside temp instead of pressure
+         if(bTestMoonSupport) {
+            Config.PosVisibility = -1;
+            Config.PosIntemp     = -1;
+         }
+         else {
+            Config.PosVisibility = 4;  // display visibility instead of UVI
+            Config.PosIntemp     = 5;  // display inside temp instead of pressure
+         }
          Config.PosUvi        = -1;
          Config.PosPressure   = -1;
          Config.PosAirQuality = -1;
