@@ -325,8 +325,8 @@ void OwmDrawTest(int c)
    Config.PosMoonset    = bTestMoonSupport ? 1 : -1;
    Config.PosMoonphase  = bTestMoonSupport ? 2 : -1;
    Config.PosInhumidity = bTestMoonSupport ? 3 : -1;
-   Config.PosHighTide   = bTestMoonSupport ? 4 : -1;
-   Config.PosLowTide    = bTestMoonSupport ? 5 : -1;
+   Config.PosLastTide   = bTestMoonSupport ? 4 : -1;
+   Config.PosNextTide   = bTestMoonSupport ? 5 : -1;
 
    Config.PosAirQuality = 6;
    Config.PosVisibility = 7;
