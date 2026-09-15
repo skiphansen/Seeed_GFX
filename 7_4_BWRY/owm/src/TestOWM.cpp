@@ -448,6 +448,7 @@ void TestTrueType(int c)
    truetype.setFramebuffer(width,height,epaper.getColorDepth(),
                            static_cast<uint8_t *>(framebuffer));
 
+   LOG("TT Text from /fonts/FreeSans-utf8.ttf\n");
    File fontFile = LittleFS.open("/fonts/FreeSans-utf8.ttf","r");
 
    if((Err = truetype.setTtfFile(fontFile)) == 0) {
@@ -506,7 +507,6 @@ void TestTrueType(int c)
       if(i > 0) {
          Icons[i] = 0;
          truetype.textDraw(x,y,Icons);
-         y += 32;
       }
    }
    else if(c == 'T') {

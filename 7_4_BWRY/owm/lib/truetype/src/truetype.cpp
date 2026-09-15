@@ -1,4 +1,4 @@
-#define ENABLE_LOGGING  0
+#define ENABLE_LOGGING  1
 #define VERBOSE_LOGGING
 #include "truetype.h"
 
@@ -1136,9 +1136,17 @@ void truetypeClass::addPixel(int16_t _x, int16_t _y, uint16_t _colorCode) {
         return;
     }
     // limit to boundary co-ordinates the boundary is always in the same orientation as the string not the buffer
-    if ((_x < start_x) || (_x >= end_x) || (_y >= end_y)) {
-       ELOG("%d, %d out of range\n",_x,_y);
-        return;
+    if(_x < start_x) {
+       ELOG("_x out of range %d < %d\n",_x,start_x);
+       return;
+    }
+    if(_x >= end_x) {
+       ELOG("_x out of range %d >= %d\n",_x,end_x);
+       return;
+    }
+    if(_y >= end_y) {
+       ELOG("_y out of range %d >= %d\n",_y,end_y);
+       return;
     }
 
     // Rotate co-ordinates relative to the buffer

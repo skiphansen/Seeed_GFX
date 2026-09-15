@@ -32,7 +32,6 @@
 #endif
 #endif
 
-#if ENABLE_LOGGING
 void DumpHex(void *AdrIn,int Len)
 {
    unsigned char *Adr = (unsigned char *) AdrIn;
@@ -98,7 +97,6 @@ void DumpHexSrc(void *AdrIn,int Len)
       LOG_RAW("\n");
    }
 }
-#endif
 
 
 #ifdef E2741QS0B3

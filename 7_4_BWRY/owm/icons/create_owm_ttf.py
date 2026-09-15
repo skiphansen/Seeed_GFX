@@ -4,10 +4,8 @@ import fontforge
 import psMat
 import generate_html_mapping_sheet
 import os
+import subprocess
 from fontTools.ttLib import TTFont
-
-name2unicode = {
-}
 
 def print_bounds(name,bounds,new_bounds):
     orig_width = round(bounds[2] - bounds[0])
@@ -25,7 +23,7 @@ def print_bounds(name,bounds,new_bounds):
     center_x = round(new_xmin + (new_xmax - new_xmin) / 2)
     center_y = round(new_ymin + (new_ymax - new_ymin) / 2)
 
-    print(f'size {new_width}x{new_height} center {center_x},{center_y} {name}:')
+    print(f'{name}: size {new_width}x{new_height} center {center_x},{center_y} {name}:')
     if orig_width != new_width or orig_height != new_height:
         print(f'  {orig_width}x{orig_height} -> {new_width}x{new_height}')
     if orig_xmin != new_xmin:
@@ -39,6 +37,7 @@ def print_bounds(name,bounds,new_bounds):
     print('')
 
 def create_ttf_from_svg():
+    shell = os.environ.get('SHELL')
     # 1. Create a new font container
     font = fontforge.font()
     
@@ -46,6 +45,7 @@ def create_ttf_from_svg():
     font.fontname = "OwmIcons"
     font.fullname = font.fontname
     font.familyname = font.fontname
+    glyph_order = ()
     
     # 3. Map your SVGs to specific character codes
     glyphs_to_map = {
@@ -95,6 +95,7 @@ def create_ttf_from_svg():
     max_height = 0
 
     mapping_records = []
+    unitsPerEm = 1000
 
     glyphs_to_add = glyphs_to_map | battery_glyphs_to_map
     for unicode_dec, name in glyphs_to_add.items():
@@ -102,10 +103,19 @@ def create_ttf_from_svg():
         mapping_records.append((name, hex(unicode_dec)))
         glyph = font.createChar(unicode_dec)
         glyph.glyphname = name
+
+        print(f'Adding {name}')
+        glyph_order.append(name)
+
         # Import the SVG vector outlines into the slot
         svg_path = 'svg/' + name + '.svg'
         if not os.path.exists(svg_path):
             svg_path = 'cleaned_material_svg/' + name + '.svg'
+            cmd_line = [ f'{shell}', '-c',f'cp {svg_path} cleaned_temp']
+            subprocess.run(cmd_line)
+        else:
+            cmd_line = [ f'{shell}', '-c',f'cp {svg_path} svg_temp']
+            subprocess.run(cmd_line)
 
         glyph.importOutlines(svg_path)
         #glyph.transform(offset_matrix)
@@ -120,30 +130,29 @@ def create_ttf_from_svg():
         center_y = bounds[1] + (height / 2.0)
 
         # 5. Determine where you want the shape centered in your em-square
-        target_center_x = 500  # Horizontal center (assuming 1000 upem)
-        target_center_y = 500  # Vertical center/baseline target
+        target_center_x = unitsPerEm / 2
+        target_center_y = unitsPerEm / 2
 
         # 6. Calculate the X/Y shift needed
         shift_x = target_center_x - center_x
         shift_y = target_center_y - center_y
 
         # 7. Apply the transformation and clean up overlaps
-        glyph.transform((1, 0, 0, 1, shift_x, shift_y))
+        #glyph.transform((1, 0, 0, 1, shift_x, shift_y))
         glyph.removeOverlap()
 
         new_bounds = glyph.boundingBox()
-        #print_bounds(name,bounds,new_bounds)
+        print_bounds(name,bounds,new_bounds)
         #print(f'advancewidth {glyph.width}')
         width = round(bounds[2] - bounds[0])
         height = round(bounds[3] - bounds[1])
         left_side_bearing = 1000.0 - ((bounds[2] - bounds[0]) // 2.0)
         if 'wind_direction_meteorological' in name:
             glyph.left_side_bearing = 250
-        else:
-            glyph.left_side_bearing = 0
-
-        # must reset width (advancewidth) since setting left_side_bearing changes it
-        glyph.width = 2000
+            # must reset width (advancewidth) since setting left_side_bearing changes it
+            glyph.width = unitsPerEm
+        #else:
+        #    glyph.left_side_bearing = 0
 
         if max_width < width:
             max_width = width
@@ -154,6 +163,7 @@ def create_ttf_from_svg():
 
     print(f'max bounding box size {max_width}x{max_height}')
     # 4. Generate and save the final TTF file
+    font.setGlyphOrder(glyph_order)
     output_ttf_name = "owm_icons.ttf"
     font.generate(output_ttf_name)
     print("TTF font generated successfully!")
