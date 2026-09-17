@@ -15,11 +15,12 @@
 #endif
 
 #include <PNGdec.h>
+#include <DrawPNG.h>
+
 
 EPaper epaper;
-PNG png; // statically allocate the PNG structure (about 50K of RAM)
 // File handle for the open file
-File pngFile;
+File PngFile;
 
 void ClearScreen(void);
 void CopyRaw2Epaper(uint8_t *p0,uint8_t *p1,int w,int h,int x_off = 0,int y_offset = 0);
@@ -27,84 +28,29 @@ void DrawTestPattern(int w,int h,int x_off = 0,int y_offset = 0);
 uint32_t Value2Color(int Value);
 void RotateSprite(TFT_eSprite &spr,TFT_eSprite &spr1);
 
-// ==========================================
-// 1. MANDATORY FILE SYSTEM HELPER FUNCTIONS
-// ==========================================
-void * myOpen(const char *filename, int32_t *size) {
-    pngFile = LittleFS.open(filename, "r");
-    if (!pngFile) return NULL;
-    *size = pngFile.size();
-    return &pngFile;
-}
-
-void myClose(void *handle) {
-}
-
-int32_t myRead(PNGFILE *handle, uint8_t *buffer, int32_t length) {
-    if (!pngFile) return 0;
-    return pngFile.read(buffer, length);
-}
-
-int32_t mySeek(PNGFILE *handle, int32_t position) {
-    if (!pngFile) return 0;
-    return pngFile.seek(position);
-}
-
-// ==========================================
-// 2. DISPLAY DRAWING CALLBACK
-// ==========================================
-// Change return type from 'void' to 'int'
-int pngDrawCallback(PNGDRAW *pDraw) 
+static void *PngOpen(const char *filename, int32_t *size) 
 {
-   TFT_eSPI *pSPR = static_cast<TFT_eSPI *>(pDraw->pUser);
-   int y = pDraw->y;
-   int iWidth = pDraw->iWidth;
+   PngFile = LittleFS.open(filename, "r");
+    if (!PngFile) return NULL;
+    *size = PngFile.size();
+    return &PngFile;
+}
 
-    uint16_t usPixels[iWidth]; 
-    
-    // Convert line data to RGB565
-    if(y == 0) {
-       LOG("y %d w %d iPitch %d iPixelType %d bpp %d\n",
-           y,iWidth,pDraw->iPitch,pDraw->iPixelType,pDraw->iBpp);
-    }
-    png.getLineAsRGB565(pDraw,usPixels,PNG_RGB565_LITTLE_ENDIAN,0xffffffff);
-#if 0
-    if(y < 2) {
-       LOG("After getLineAsRGB565\n");
-       Color color;
-       for(int i = 0; i < iWidth;i++) {
-          color = Color(usPixels[i]);
-          if((i % 8) == 0) {
-             LOG_RAW("\n%d,%d: ",i,y);
-          //   DUMP_HEX(&usPixels[i],16);
-          }
-//          LOG_RAW("%d:%d:%d, ",color.r,color.g,color.b);
-          LOG_RAW("0x%02x, ",usPixels[i]);
-       }
-       LOG_RAW("\n");
-    }
-#endif
+static void PngClose(void *handle) 
+{
+   PngFile.close();
+}
 
-    for(int i = 0; i < iWidth; i++) {
-       pSPR->drawPixel(i,y,usPixels[i]);
-    }
+static int32_t PngRead(PNGFILE *handle, uint8_t *buffer, int32_t length) 
+{
+    if (!PngFile) return 0;
+    return PngFile.read(buffer, length);
+}
 
-#if 0
-    if(y == 0) {
-       LOG("Readback\n");
-       Color color;
-       for(int i = 0; i < iWidth;i++) {
-          color = pSPR->readPixel(i,y);
-          if((i % 8) == 0) {
-             LOG_RAW("\n%d: ",i);
-          }
-          LOG_RAW("%d:%d:%d, ",color.r,color.g,color.b);
-       }
-       LOG_RAW("\n");
-    }
-#endif
-    
-    return 1;
+static int32_t PngSeek(PNGFILE *handle, int32_t position) 
+{
+    if (!PngFile) return 0;
+    return PngFile.seek(position);
 }
 
 void setup() 
@@ -130,27 +76,22 @@ void setup()
       TFT_eSPI *tft1 = NULL;
       uint8_t *Plane0 = NULL;
       uint8_t *Plane1 = NULL;
-      int PngHeight;
-      int PngWidth;
       int DisplayHeight;
       int DisplayWidth;
+      class DrawPNG *png = NULL;
 
       do {
 //#define FILENAME "/airport_meeting.png";
 #define FILENAME "/color_test_1.png";
-       const char *Filename = FILENAME;
+         const char *Filename = FILENAME;
          int err;
 
-         err = png.open(Filename,myOpen,myClose,myRead,mySeek,pngDrawCallback);
-
-         if(err != PNG_SUCCESS) {
-            LOG("png.open of %s failed %d\n",Filename,err);
+         PngFileCBs_t CBs = {PngOpen,PngClose,PngRead,PngSeek};
+         png = new DrawPNG(&CBs);
+         if(png == NULL) {
+            LOG("new DrawPNG failed\n");
             break;
          }
-         PngHeight = png.getHeight();
-         PngWidth = png.getWidth();
-         LOG("%s: %dx%d, %d bpp, color type: %d\n",
-             Filename,PngWidth,PngHeight,png.getBpp(),png.getPixelType());
          DisplayWidth = epaper.width();
          DisplayHeight = epaper.height();
       // Create an SPR to receive the image
@@ -167,11 +108,7 @@ void setup()
          spr.fillScreen(TFT_WHITE);
 
       // Decode PNG file into SPR
-         err = png.decode(&spr,0);
-         if(err != PNG_SUCCESS) {
-            LOG("png failed %d\n",err);
-         }
-         png.close();
+         png->DrawPng(Filename,spr);
 
       // convert 8bbp SPR into bit planes for display
          struct imgParam imageParams;
