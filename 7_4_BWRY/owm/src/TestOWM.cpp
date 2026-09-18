@@ -152,6 +152,7 @@ void setup()
          LOG_RAW(" 3: 800 x 480\n");
          LOG_RAW(" a: Arrow Icon test\n");
          LOG_RAW(" b: Battery Icon test\n");
+         LOG_RAW(" c: Clear screen\n");
          LOG_RAW(" f: Toggle between file based and embedded TrueType data\n");
          LOG_RAW(" l: Toggle language\n");
          LOG_RAW(" m: Toggle moon data testing\n");
@@ -174,6 +175,11 @@ void setup()
          case '2':
          case '3':
             OwmDrawTest(c);
+            break;
+
+         case 'c':
+            LOG_RAW("Clearing screen, TFT_WHITE %d\n",TFT_WHITE);
+            ClearScreen();
             break;
 
          case 'a':

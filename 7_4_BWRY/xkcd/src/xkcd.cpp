@@ -26,7 +26,7 @@ void ClearScreen(void);
 void CopyRaw2Epaper(uint8_t *p0,uint8_t *p1,int w,int h,int x_off = 0,int y_offset = 0);
 void DrawTestPattern(int w,int h,int x_off = 0,int y_offset = 0);
 uint32_t Value2Color(int Value);
-void RotateSprite(TFT_eSprite &spr,TFT_eSprite &spr1);
+void TestXkcd(int c);
 
 static void *PngOpen(const char *filename, int32_t *size) 
 {
@@ -64,71 +64,125 @@ void setup()
    while (!Serial);
    delay(250);
 
+   bool bDisplayMenu = true;
    while (true) {
       int c = 0;
+      if(bDisplayMenu) {
+         LOG_RAW(" 1: Test xkcd @ 400 x 300\n");
+         LOG_RAW(" 2: Test xkcd @ 640 x 384\n");
+         LOG_RAW(" 3: Test xkcd @ 800 x 480\n");
+         LOG_RAW(" c: Clear screen\n");
+         LOG_RAW("Press a key to start a test\n");
+      }
+      bDisplayMenu = true;
       while (!Serial.available());
       while (Serial.available()) {
          c = Serial.read();
       }
-      LOG("xkcd test\n");
-      ClearScreen();
-      TFT_eSPI *tft = NULL;
-      TFT_eSPI *tft1 = NULL;
-      uint8_t *Plane0 = NULL;
-      uint8_t *Plane1 = NULL;
-      int DisplayHeight;
-      int DisplayWidth;
-      class DrawPNG *png = NULL;
 
-      do {
+      switch(c) {
+         case '1':
+         case '2':
+         case '3':
+            TestXkcd(c);
+            break;
+
+         case 'c':
+            LOG_RAW("Clearing screen\n");
+            ClearScreen();
+            epaper.update(); // update the display
+            break;
+
+         default:
+            LOG_RAW("Invalid option\n\n");
+            bDisplayMenu = true;
+            continue;
+      }
+   }
+}
+
 //#define FILENAME "/airport_meeting.png";
 //#define FILENAME "/color_test_1.png";
 #define FILENAME "/summer.png";
 
-         const char *Filename = FILENAME;
-         int err;
+void TestXkcd(int c) 
+{
+   TFT_eSPI *tft = NULL;
+   TFT_eSPI *tft1 = NULL;
+   uint8_t *Plane0 = NULL;
+   uint8_t *Plane1 = NULL;
+   int DisplayHeight = 0;
+   int DisplayWidth = 0;
+   int SprOffsetX = 0;
+   int SprOffsetY = 0;
+   class DrawPNG *png = NULL;
 
-         PngFileCBs_t CBs = {PngOpen,PngClose,PngRead,PngSeek};
-         png = new DrawPNG(&CBs);
-         if(png == NULL) {
-            LOG("new DrawPNG failed\n");
+   LOG("xkcd test\n");
+   ClearScreen();
+
+   do {
+      const char *Filename = FILENAME;
+
+      switch(c) {
+         case '1':
+            DisplayWidth = 400;
+            DisplayHeight = 300;
             break;
-         }
-         DisplayWidth = epaper.width();
-         DisplayHeight = epaper.height();
+
+         case '2':
+            DisplayWidth = 640;
+            DisplayHeight = 384;
+            break;
+
+         case '3':
+            DisplayWidth = 800;
+            DisplayHeight = 480;
+            break;
+      }
+
+      SprOffsetX = (800 - DisplayWidth) / 2;
+      SprOffsetY = (480 - DisplayHeight) / 2;
+
+      PngFileCBs_t CBs = {PngOpen,PngClose,PngRead,PngSeek};
+      png = new DrawPNG(&CBs);
+      if (png == NULL) {
+         LOG("new DrawPNG failed\n");
+         break;
+      }
+//      png->SetSprOffsets(SprOffsetX,SprOffsetY);
       // Create an SPR to receive the image
-         tft = new TFT_eSPI();
-         TFT_eSprite spr = TFT_eSprite(tft);
-         spr.setColorDepth(16);
-         LOG("Create %dx%d spr\n",DisplayWidth,DisplayHeight);
-         spr.createSprite(DisplayWidth,DisplayHeight);
+      tft = new TFT_eSPI();
+      TFT_eSprite spr = TFT_eSprite(tft);
+      spr.setColorDepth(16);
+      LOG("Create %dx%d spr\n",DisplayWidth,DisplayHeight);
+      spr.createSprite(DisplayWidth,DisplayHeight);
 
-         if(spr.getPointer() == nullptr) {
-            ELOG("Failed to create sprite\n");
-            break;
-         }
+      if (spr.getPointer() == nullptr) {
+         ELOG("Failed to create sprite\n");
+         break;
+      }
 // Clear the screen ... fillScreen() doesn't work correctly
-         for(int y = 0; y < DisplayHeight; y++) {
-            for(int x = 0; x < DisplayWidth; x++) {
-               spr.drawPixel(x,y,0xffff);
-            }
+      for (int y = 0; y < DisplayHeight; y++) {
+         for (int x = 0; x < DisplayWidth; x++) {
+            spr.drawPixel(x,y,0xffff);
          }
+      }
 
       // Decode PNG file into SPR
-         png->DrawPng(Filename,spr);
+      png->DrawPng(Filename,spr);
 
       // convert 8bbp SPR into bit planes for display
-         struct imgParam imageParams;
-   // from working AP's log:
-   // drawForecast: dither 2 bufferbpp 8 rotate 0 rotatebuffer 3 bpp 2 invert 0
-         imageParams.bufferbpp = 8;
-         imageParams.rotate = 0;
-         imageParams.rotatebuffer = 0;
-         imageParams.bpp = 2;
-         imageParams.invert = 0;
+      struct imgParam imageParams;
+      // from working AP's log:
+      // drawForecast: dither 2 bufferbpp 8 rotate 0 rotatebuffer 3 bpp 2 invert 0
+      imageParams.bufferbpp = 8;
+      imageParams.rotate = 0;
+      imageParams.rotatebuffer = 0;
+      imageParams.bpp = 2;
+      imageParams.invert = 0;
 
-         imageParams.dither = 0; // set dynamically eventually
-         imageParams.hasRed = false;   // set by spr2color()
+      imageParams.dither = 0; // set dynamically eventually
+      imageParams.hasRed = false;   // set by spr2color()
 /* 
    from A3.json: 
          "colortable": {
@@ -138,56 +192,55 @@ void setup()
                  "yellow": [ 255, 255, 0 ]
          },
 */
-         imageParams.hwdata.colortable.push_back(Color(255,255,255));   // white
-         imageParams.hwdata.colortable.push_back(Color(0,0,0));         // black
-         imageParams.hwdata.colortable.push_back(Color(255,0,0));       // red
-         imageParams.hwdata.colortable.push_back(Color(255,255,0));     // yellow
+      imageParams.hwdata.colortable.push_back(Color(255,255,255));   // white
+      imageParams.hwdata.colortable.push_back(Color(0,0,0));         // black
+      imageParams.hwdata.colortable.push_back(Color(255,0,0));       // red
+      imageParams.hwdata.colortable.push_back(Color(255,255,0));     // yellow
 
-         size_t buffer_size = (DisplayWidth * DisplayHeight) /8;
+      size_t buffer_size = (DisplayWidth * DisplayHeight) /8;
 
-         Plane0 = (uint8_t *) malloc(buffer_size);
-         if(Plane0 == NULL) {
-            ELOG("Malloc of %d bytes failed\n",buffer_size);
-            break;
-         }
-         Plane1 = (uint8_t *) malloc(buffer_size);
-         if(Plane1 == NULL) {
-            ELOG("Malloc of %d bytes failed\n",buffer_size);
-            break;
-         }
-         spr2color(spr,imageParams,Plane0,buffer_size,false);
-         spr2color(spr,imageParams,Plane1,buffer_size,true);
+      Plane0 = (uint8_t *) malloc(buffer_size);
+      if (Plane0 == NULL) {
+         ELOG("Malloc of %d bytes failed\n",buffer_size);
+         break;
+      }
+      Plane1 = (uint8_t *) malloc(buffer_size);
+      if (Plane1 == NULL) {
+         ELOG("Malloc of %d bytes failed\n",buffer_size);
+         break;
+      }
+      spr2color(spr,imageParams,Plane0,buffer_size,false);
+      spr2color(spr,imageParams,Plane1,buffer_size,true);
 
 #if 0
-         LOG("Plane0:\n",Plane0);
-         DUMP_HEX(Plane0,800/4);
+      LOG("Plane0:\n",Plane0);
+      DUMP_HEX(Plane0,800/4);
 
-         LOG("Plane1:\n",Plane0);
-         DUMP_HEX(Plane1,800/4);
+      LOG("Plane1:\n",Plane0);
+      DUMP_HEX(Plane1,800/4);
 #endif
 
 #if 1
-       CopyRaw2Epaper(Plane0,Plane1,DisplayWidth,DisplayHeight);
+      CopyRaw2Epaper(Plane0,Plane1,DisplayWidth,DisplayHeight,SprOffsetX,SprOffsetY);
 #else
-       DrawTestPattern(DisplayWidth,DisplayHeight);
+      DrawTestPattern(DisplayWidth,DisplayHeight);
 #endif
-         epaper.update(); // update the display
-      } while(false);
+      epaper.update(); // update the display
+   } while (false);
 
-      if(tft != NULL) {
-         delete tft;
-      }
+   if (tft != NULL) {
+      delete tft;
+   }
 
-      if(tft1 != NULL) {
-         delete tft1;
-      }
+   if (tft1 != NULL) {
+      delete tft1;
+   }
 
-      if(Plane0 != NULL) {
-         free(Plane0 );
-      }
-      if(Plane1!= NULL) {
-         free(Plane1);
-      }
+   if (Plane0 != NULL) {
+      free(Plane0 );
+   }
+   if (Plane1!= NULL) {
+      free(Plane1);
    }
 }
 
@@ -309,7 +362,6 @@ void CopyRaw2Epaper(uint8_t *p0,uint8_t *p1,int w,int h,int x_off,int y_offset)
 {  
 #if 0
    LOG("%dx%d x_off %d y_offset %d\n",w,h,x_off,y_offset);
-//   for(int y = 0; y < h; y++) {
    LOG("Plane 0 line 0:\n");
    DUMP_HEX(p0,800/4);
    LOG("Plane 0 line 1:\n");
@@ -354,7 +406,6 @@ void CopyRaw2Epaper(uint8_t *p0,uint8_t *p1,int w,int h,int x_off,int y_offset)
 #endif
          InShift++;
          epaper.drawPixel(x + x_off,y + y_offset,Value2Color(Value));
-         // epaper.drawPixel(y + y_offset,x + x_off,Color);
       }
    }
 }
