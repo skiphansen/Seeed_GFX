@@ -82,7 +82,9 @@ void setup()
 
       do {
 //#define FILENAME "/airport_meeting.png";
-#define FILENAME "/color_test_1.png";
+//#define FILENAME "/color_test_1.png";
+#define FILENAME "/summer.png";
+
          const char *Filename = FILENAME;
          int err;
 
@@ -105,7 +107,12 @@ void setup()
             ELOG("Failed to create sprite\n");
             break;
          }
-         spr.fillScreen(TFT_WHITE);
+// Clear the screen ... fillScreen() doesn't work correctly
+         for(int y = 0; y < DisplayHeight; y++) {
+            for(int x = 0; x < DisplayWidth; x++) {
+               spr.drawPixel(x,y,0xffff);
+            }
+         }
 
       // Decode PNG file into SPR
          png->DrawPng(Filename,spr);
