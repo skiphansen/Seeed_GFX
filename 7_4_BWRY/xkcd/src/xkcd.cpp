@@ -26,7 +26,7 @@ void ClearScreen(void);
 void CopyRaw2Epaper(uint8_t *p0,uint8_t *p1,int w,int h,int x_off = 0,int y_offset = 0);
 void DrawTestPattern(int w,int h,int x_off = 0,int y_offset = 0);
 uint32_t Value2Color(int Value);
-void TestXkcd(int c);
+void TestXkcd(int c,uint32_t Options);
 
 static void *PngOpen(const char *filename, int32_t *size) 
 {
@@ -65,13 +65,22 @@ void setup()
    delay(250);
 
    bool bDisplayMenu = true;
+   uint32_t Options = 0;
+
    while (true) {
       int c = 0;
       if(bDisplayMenu) {
          LOG_RAW(" 1: Test xkcd @ 400 x 300\n");
          LOG_RAW(" 2: Test xkcd @ 640 x 384\n");
-         LOG_RAW(" 3: Test xkcd @ 800 x 480\n");
-         LOG_RAW(" c: Clear screen\n");
+         LOG_RAW(" 3: Test xkcd @ 800 x 480\n\n");
+         LOG_RAW("\n");
+         LOG_RAW("c: Center image on acreen\n");
+         LOG_RAW("t: image top aligned\n");
+         LOG_RAW("b: image top aligned\n");
+         LOG_RAW("r: image right aligned\n");
+         LOG_RAW("l: image left aligned\n");
+         LOG_RAW("\n");
+         LOG_RAW("C: Clear screen\n");
          LOG_RAW("Press a key to start a test\n");
       }
       bDisplayMenu = true;
@@ -84,10 +93,44 @@ void setup()
          case '1':
          case '2':
          case '3':
-            TestXkcd(c);
+            TestXkcd(c,Options);
             break;
 
          case 'c':
+            Options &= ~(X_ALIGN_MASK | X_ALIGN_MASK);
+            LOG_RAW("Image centered on acreen\n");
+            bDisplayMenu = false;
+            break;
+
+         case 't':
+            Options &= ~(Y_ALIGN_MASK);
+            Options |= Y_ALIGN_TOP;
+            LOG_RAW("image top aligned\n");
+            bDisplayMenu = false;
+            break;
+
+         case 'b':
+            Options &= ~(Y_ALIGN_MASK);
+            Options |= Y_ALIGN_BOTTOM;
+            LOG_RAW("image bottom aligned\n");
+            bDisplayMenu = false;
+            break;
+
+         case 'r':
+            Options &= ~X_ALIGN_MASK;
+            Options |= X_ALIGN_RIGHT;;
+            LOG_RAW("image right aligned\n");
+            bDisplayMenu = false;
+            break;
+
+         case 'l':
+            Options &= ~X_ALIGN_MASK;
+            Options |= X_ALIGN_LEFT;;
+            LOG_RAW("image left aligned\n");
+            bDisplayMenu = false;
+            break;
+
+         case 'C':
             LOG_RAW("Clearing screen\n");
             ClearScreen();
             epaper.update(); // update the display
@@ -105,7 +148,7 @@ void setup()
 //#define FILENAME "/color_test_1.png";
 #define FILENAME "/summer.png";
 
-void TestXkcd(int c) 
+void TestXkcd(int c,uint32_t Options) 
 {
    TFT_eSPI *tft = NULL;
    TFT_eSPI *tft1 = NULL;
@@ -145,7 +188,7 @@ void TestXkcd(int c)
 
       PngFileCBs_t CBs = {PngOpen,PngClose,PngRead,PngSeek};
       png = new DrawPNG(&CBs);
-      if (png == NULL) {
+      if(png == NULL) {
          LOG("new DrawPNG failed\n");
          break;
       }
@@ -168,6 +211,7 @@ void TestXkcd(int c)
          }
       }
 
+      png->SetOptions(Options);
       // Decode PNG file into SPR
       png->DrawPng(Filename,spr);
 
