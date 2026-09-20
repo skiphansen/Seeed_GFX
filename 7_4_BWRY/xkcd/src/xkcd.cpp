@@ -25,6 +25,7 @@ File PngFile;
 void ClearScreen(void);
 void CopyRaw2Epaper(uint8_t *p0,uint8_t *p1,int w,int h,int x_off = 0,int y_offset = 0);
 void DrawTestPattern(int w,int h,int x_off = 0,int y_offset = 0);
+void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height);
 uint32_t Value2Color(int Value);
 void TestXkcd(int c,uint32_t Options);
 
@@ -72,15 +73,16 @@ void setup()
       if(bDisplayMenu) {
          LOG_RAW(" 1: Test xkcd @ 400 x 300\n");
          LOG_RAW(" 2: Test xkcd @ 640 x 384\n");
-         LOG_RAW(" 3: Test xkcd @ 800 x 480\n\n");
+         LOG_RAW(" 3: Test xkcd @ 800 x 480\n");
          LOG_RAW("\n");
-         LOG_RAW("c: Center image on acreen\n");
-         LOG_RAW("t: image top aligned\n");
-         LOG_RAW("b: image top aligned\n");
-         LOG_RAW("r: image right aligned\n");
-         LOG_RAW("l: image left aligned\n");
+         LOG_RAW(" c: center image on acreen\n");
+         LOG_RAW(" t: image top aligned\n");
+         LOG_RAW(" b: image top aligned\n");
+         LOG_RAW(" r: image right aligned\n");
+         LOG_RAW(" l: image left aligned\n");
+         LOG_RAW(" R: toggle rotate option\n");
          LOG_RAW("\n");
-         LOG_RAW("C: Clear screen\n");
+         LOG_RAW(" C: Clear screen\n");
          LOG_RAW("Press a key to start a test\n");
       }
       bDisplayMenu = true;
@@ -98,7 +100,7 @@ void setup()
 
          case 'c':
             Options &= ~(X_ALIGN_MASK | X_ALIGN_MASK);
-            LOG_RAW("Image centered on acreen\n");
+            LOG_RAW("Image centered on screen\n");
             bDisplayMenu = false;
             break;
 
@@ -136,9 +138,32 @@ void setup()
             epaper.update(); // update the display
             break;
 
+         case 'R':
+            switch(Options & ROTATE_MODE_MASK) {
+               case ROTATE_MODE_OFF:   // never rotate
+                  Options &= ~ROTATE_MODE_MASK;
+                  Options |= ROTATE_MODE_ON;
+                  LOG_RAW("Rotate ON\n");
+                  break;
+
+               case ROTATE_MODE_ON:    // always roate
+                  Options &= ~ROTATE_MODE_MASK;
+                  Options |= ROTATE_MODE_FIT;
+                  LOG_RAW("Rotate FIT\n");
+                  break;
+
+               case ROTATE_MODE_FIT:   // only rotate when scaling 
+               default:
+                  Options &= ~ROTATE_MODE_MASK;
+                  Options |= ROTATE_MODE_OFF;
+                  LOG_RAW("Rotate OFF\n");
+                  break;
+            }
+            bDisplayMenu = false;
+            break;
+
          default:
             LOG_RAW("Invalid option\n\n");
-            bDisplayMenu = true;
             continue;
       }
    }
@@ -146,7 +171,8 @@ void setup()
 
 //#define FILENAME "/airport_meeting.png";
 //#define FILENAME "/color_test_1.png";
-#define FILENAME "/summer.png";
+// #define FILENAME "/summer.png";
+#define FILENAME "/move_fast_and_break_things.png";
 
 void TestXkcd(int c,uint32_t Options) 
 {
@@ -186,6 +212,10 @@ void TestXkcd(int c,uint32_t Options)
       SprOffsetX = (800 - DisplayWidth) / 2;
       SprOffsetY = (480 - DisplayHeight) / 2;
 
+      if (DisplayWidth != 800) {
+         DrawBoundingBox(SprOffsetX,SprOffsetY,DisplayWidth,DisplayHeight);
+      }
+
       PngFileCBs_t CBs = {PngOpen,PngClose,PngRead,PngSeek};
       png = new DrawPNG(&CBs);
       if(png == NULL) {
@@ -212,8 +242,12 @@ void TestXkcd(int c,uint32_t Options)
       }
 
       png->SetOptions(Options);
-      // Decode PNG file into SPR
-      png->DrawPng(Filename,spr);
+   // Decode PNG file into SPR
+      int Err;
+      if((Err = png->DrawPng(Filename,spr))) {
+         LOG("DrawPng failed %d\n",Err);
+         break;
+      }
 
       // convert 8bbp SPR into bit planes for display
       struct imgParam imageParams;
@@ -465,5 +499,39 @@ void DrawTestPattern(int w,int h,int x_off,int y_offset)
          epaper.drawPixel(x + x_off,y + y_offset,Value2Color(Value));
       }
    }
+}
+
+// Draw bounding box
+void DrawBoundingBox(int16_t xOffset,int16_t yOffset,int16_t Width,int16_t Height)
+{
+   int x0;
+   int x1;
+   int y0;
+   int y1;
+
+   x0 = xOffset - 1;
+   x1 = xOffset + Width + 1;
+   y0 = yOffset - 1;
+   y1 = yOffset - 1;
+
+   // top 
+   epaper.drawLine(x0,y0,x1,y1,TFT_RED); 
+
+   // bottom
+   y0 += Height + 2;
+   y1 = y0;
+   epaper.drawLine(x0,y0,x1,y1,TFT_RED); 
+
+   // left edge
+   x0 = xOffset - 1;
+   x1 = x0;
+   y0 = yOffset - 1;
+   y1 = yOffset + Height + 1;
+   epaper.drawLine(x0,y0,x1,y1,TFT_RED); 
+
+   // right edge
+   x0 = xOffset + Width + 1;
+   x1 = x0;
+   epaper.drawLine(x0,y0,x1,y1,TFT_RED); 
 }
 
